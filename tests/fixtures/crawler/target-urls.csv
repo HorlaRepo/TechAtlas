@@ -1,0 +1,9 @@
+expected,input
+accept,https://public.example/path
+accept,public.example/path
+reject,ftp://public.example/
+reject,https://user:password@public.example/
+reject,https://public.example/#fragment
+reject,http://127.0.0.1/
+reject,http://[::1]/
+reject,http://localhost/

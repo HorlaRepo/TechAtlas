@@ -1,0 +1,14 @@
+[package]
+name = "techatlas-detector"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+regex.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+techatlas-models = { path = "../models" }
+techatlas-parser = { path = "../parser" }

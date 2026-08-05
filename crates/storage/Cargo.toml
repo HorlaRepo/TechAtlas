@@ -1,0 +1,17 @@
+[package]
+name = "techatlas-storage"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+time.workspace = true
+tokio.workspace = true
+uuid.workspace = true
+zstd.workspace = true
+techatlas-models = { path = "../models" }

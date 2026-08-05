@@ -1,0 +1,21 @@
+[package]
+name = "techatlas-crawler"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+reqwest.workspace = true
+regex.workspace = true
+rustls.workspace = true
+thiserror.workspace = true
+time.workspace = true
+tokio.workspace = true
+tokio-rustls.workspace = true
+tokio-util.workspace = true
+url.workspace = true
+webpki-roots.workspace = true
+x509-parser.workspace = true

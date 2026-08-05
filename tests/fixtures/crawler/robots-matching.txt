@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /
+
+User-agent: TechAtlas
+Disallow: /private
+Allow: /private/public
+Disallow: /private/public/archive
+Allow: /same
+Disallow: /same
