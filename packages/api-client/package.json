@@ -1,0 +1,21 @@
+{
+  "name": "@techatlas/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "generate": "openapi-ts",
+    "check:generated": "../../scripts/check-api-client.sh",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "^0.99.0",
+    "typescript": "^5.9.3"
+  }
+}
