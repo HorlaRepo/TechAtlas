@@ -1,0 +1,22 @@
+[package]
+name = "techatlas-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+clap.workspace = true
+secrecy.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+time.workspace = true
+techatlas-database = { path = "../../crates/database" }
+techatlas-models = { path = "../../crates/models" }
+techatlas-search = { path = "../../crates/search" }
+url.workspace = true
+
+[dev-dependencies]
+uuid.workspace = true
