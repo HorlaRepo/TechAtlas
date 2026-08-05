@@ -9,6 +9,13 @@ permissions:
   contents: read
 
 jobs:
+  sensitive-files:
+    name: Sensitive-file guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/check-sensitive-files.sh
+
   frontend:
     name: Frontend quality
     runs-on: ubuntu-latest
