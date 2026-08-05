@@ -1,0 +1,3167 @@
+openapi: 3.1.0
+info:
+  title: TechAtlas API
+  description: ''
+  contact:
+    name: TechAtlas Contributors
+  license:
+    name: MIT
+    identifier: MIT
+  version: 1.0.0
+paths:
+  /api/v1/admin/audit-events:
+    get:
+      tags:
+      - admin-audit
+      operationId: audit_events
+      parameters:
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEventPageResponse'
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+  /api/v1/admin/country-enrichment/recrawl:
+    post:
+      tags:
+      - admin-operations
+      operationId: schedule_country_enrichment_recrawl
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountryEnrichmentRecrawlResponse'
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+  /api/v1/admin/crawl-attempts:
+    get:
+      tags:
+      - admin-operations
+      operationId: crawl_attempts
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrawlAttemptPageResponse'
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+  /api/v1/admin/crawl-attempts/{job_id}/retry:
+    post:
+      tags:
+      - admin-operations
+      operationId: retry_crawl_attempt
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrawlAttemptResponse'
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+  /api/v1/admin/detection-reprocessing-runs:
+    get:
+      tags:
+      - admin-rules
+      operationId: reprocessing_runs
+      parameters:
+      - name: rule_slug
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReprocessingRunListResponse'
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+  /api/v1/admin/detection-rules:
+    get:
+      tags:
+      - admin-rules
+      operationId: detection_rules
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetectionRuleListResponse'
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+  /api/v1/admin/detection-rules/{rule_slug}/active-version:
+    patch:
+      tags:
+      - admin-rules
+      operationId: set_active_rule_version
+      parameters:
+      - name: rule_slug
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActiveRuleVersionRequest'
+        required: true
+      responses:
+        '204':
+          description: ''
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+  /api/v1/admin/detection-rules/{rule_slug}/draft:
+    patch:
+      tags:
+      - admin-rules
+      operationId: save_rule_draft
+      parameters:
+      - name: rule_slug
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuleDraftRequest'
+        required: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetectionRuleResponse'
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+  /api/v1/admin/detection-rules/{rule_slug}/draft/publish:
+    post:
+      tags:
+      - admin-rules
+      operationId: publish_rule_draft
+      parameters:
+      - name: rule_slug
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetectionRuleVersionResponse'
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+  /api/v1/admin/detection-rules/{rule_slug}/draft/test:
+    post:
+      tags:
+      - admin-rules
+      operationId: test_rule_draft
+      parameters:
+      - name: rule_slug
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuleFixtureTestRequest'
+        required: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleFixtureTestResponse'
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+  /api/v1/admin/detection-rules/{rule_slug}/versions/{rule_version}/reprocessing:
+    post:
+      tags:
+      - admin-rules
+      operationId: start_reprocessing
+      parameters:
+      - name: rule_slug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: rule_version
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+          minimum: 0
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartReprocessingRequest'
+        required: true
+      responses:
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReprocessingRunResponse'
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+  /api/v1/admin/domains:
+    get:
+      tags:
+      - admin-domains
+      operationId: list_domains
+      parameters:
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+      responses:
+        '200':
+          description: Page of active domains
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainListResponse'
+        '401':
+          description: Authentication failed
+          headers:
+            WWW-Authenticate:
+              schema:
+                type: string
+              description: Bearer authentication challenge
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Query validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                format: int64
+                minimum: 0
+              description: Seconds before retrying
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+    post:
+      tags:
+      - admin-domains
+      operationId: create_domain
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDomainRequest'
+        required: true
+      responses:
+        '201':
+          description: Domain created
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Canonical resource location
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainResponse'
+        '401':
+          description: Authentication failed
+          headers:
+            WWW-Authenticate:
+              schema:
+                type: string
+              description: Bearer authentication challenge
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Domain already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Request validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                format: int64
+                minimum: 0
+              description: Seconds before retrying
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+  /api/v1/admin/domains/{canonical_domain}:
+    get:
+      tags:
+      - admin-domains
+      operationId: get_domain
+      parameters:
+      - name: canonical_domain
+        in: path
+        description: Domain name or normalizable HTTP(S) URL
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Active domain
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainResponse'
+        '401':
+          description: Authentication failed
+          headers:
+            WWW-Authenticate:
+              schema:
+                type: string
+              description: Bearer authentication challenge
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Domain not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Path validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                format: int64
+                minimum: 0
+              description: Seconds before retrying
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+  /api/v1/admin/domains/{canonical_domain}/crawl:
+    post:
+      tags:
+      - admin-domains
+      operationId: request_domain_crawl
+      parameters:
+      - name: canonical_domain
+        in: path
+        description: Existing enabled domain name or normalizable HTTP(S) URL
+        required: true
+        schema:
+          type: string
+      responses:
+        '202':
+          description: Domain made eligible for scheduler processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrawlRequestResponse'
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Crawl policy is disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+  /api/v1/admin/domains/{canonical_domain}/policy:
+    patch:
+      tags:
+      - admin-domains
+      operationId: update_policy
+      parameters:
+      - name: canonical_domain
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePolicyRequest'
+        required: true
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyResponse'
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+  /api/v1/admin/imports/csv:
+    post:
+      tags:
+      - admin-imports
+      operationId: import_csv
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CsvImportRequest'
+        required: true
+      responses:
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CsvImportResponse'
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+  /api/v1/admin/operations/overview:
+    get:
+      tags:
+      - admin-operations
+      operationId: operations_overview
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationsOverviewResponse'
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      security:
+      - oidc_bearer: []
+  /api/v1/public/analytics/adoption:
+    get:
+      tags:
+      - public-analytics
+      operationId: analytics_adoption
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublicAdoption'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/public/analytics/adoption-history:
+    get:
+      tags:
+      - public-analytics
+      operationId: analytics_adoption_history
+      parameters:
+      - name: since_days
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          minimum: 0
+      - name: technology
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicAdoptionHistory'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/public/analytics/changes:
+    get:
+      tags:
+      - public-analytics
+      operationId: analytics_changes
+      parameters:
+      - name: since_days
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          minimum: 0
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublicChangeTrend'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/public/analytics/discovery:
+    get:
+      tags:
+      - public-analytics
+      operationId: analytics_discovery
+      parameters:
+      - name: since_days
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          minimum: 0
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicAnalyticsDiscovery'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/public/analytics/movers:
+    get:
+      tags:
+      - public-analytics
+      operationId: analytics_movers
+      parameters:
+      - name: since_days
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          minimum: 0
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicAnalyticsMovers'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/public/analytics/overview:
+    get:
+      tags:
+      - public-analytics
+      operationId: analytics_overview
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicAnalyticsOverview'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/public/analytics/rankings:
+    get:
+      tags:
+      - public-analytics
+      operationId: analytics_rankings
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicAnalyticsRankings'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/public/compare:
+    get:
+      tags:
+      - public-comparison
+      operationId: compare
+      parameters:
+      - name: domain
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicComparisonResponse'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/public/domains/{canonical_domain}:
+    get:
+      tags:
+      - public-domains
+      operationId: domain_profile
+      parameters:
+      - name: canonical_domain
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicDomainProfile'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    post:
+      tags:
+      - public-domains
+      operationId: request_refresh
+      parameters:
+      - name: canonical_domain
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '202':
+          description: Refresh request recorded for scheduler processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicRefreshRequest'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Refresh is disabled for the domain
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: ''
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                format: int64
+                minimum: 0
+              description: Seconds before another request may be accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/public/domains/{canonical_domain}/changes:
+    get:
+      tags:
+      - public-domains
+      operationId: domain_changes
+      parameters:
+      - name: canonical_domain
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicChangePage'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/public/domains/{canonical_domain}/crawls:
+    get:
+      tags:
+      - public-domains
+      operationId: domain_crawls
+      parameters:
+      - name: canonical_domain
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicCrawlPage'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/public/domains/{canonical_domain}/crawls/{crawl_id}:
+    get:
+      tags:
+      - public-domains
+      operationId: crawl_detail
+      parameters:
+      - name: canonical_domain
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: crawl_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicCrawlDetail'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/public/providers/{provider_slug}:
+    get:
+      tags:
+      - public-providers
+      operationId: provider_profile
+      parameters:
+      - name: provider_slug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicProviderProfile'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/public/search/domains:
+    get:
+      tags:
+      - public-search
+      operationId: search_domains
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: technology
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+      - name: category
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+      - name: country
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+      - name: crawled_since
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: min_confidence
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          minimum: 0
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Search result page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicDomainSearchPage'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/public/technologies:
+    get:
+      tags:
+      - public-technologies
+      operationId: technologies
+      parameters:
+      - name: category
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: trend
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicTechnologyLibraryPage'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/public/technologies/{technology_slug}:
+    get:
+      tags:
+      - public-technologies
+      operationId: technology_domains
+      parameters:
+      - name: technology_slug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /api/v1/public/technologies/{technology_slug}/profile:
+    get:
+      tags:
+      - public-technologies
+      operationId: technology_profile
+      parameters:
+      - name: technology_slug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicTechnologyProfile'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+components:
+  schemas:
+    ActiveRuleVersionRequest:
+      type: object
+      properties:
+        version:
+          type:
+          - integer
+          - 'null'
+          format: int32
+          minimum: 0
+    AdminCrawlRetryState:
+      type: string
+      enum:
+      - in_progress
+      - automatic_retry_scheduled
+      - manual_retry_available
+      - manual_retry_blocked
+      - not_applicable
+    AuditEventPageResponse:
+      type: object
+      required:
+      - events
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEventResponse'
+        next_cursor:
+          type:
+          - string
+          - 'null'
+    AuditEventResponse:
+      type: object
+      required:
+      - id
+      - actor_subject
+      - action
+      - resource_kind
+      - resource_id
+      - occurred_at
+      properties:
+        action:
+          type: string
+        actor_subject:
+          type: string
+        id:
+          type: string
+        occurred_at:
+          type: string
+        resource_id:
+          type: string
+        resource_kind:
+          type: string
+    CountryEnrichmentRecrawlResponse:
+      type: object
+      required:
+      - scheduled_domain_count
+      properties:
+        scheduled_domain_count:
+          type: integer
+          format: int64
+          minimum: 0
+    CrawlAttemptPageResponse:
+      type: object
+      required:
+      - attempts
+      properties:
+        attempts:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrawlAttemptResponse'
+    CrawlAttemptResponse:
+      type: object
+      required:
+      - job_id
+      - canonical_domain
+      - attempt_number
+      - status
+      - queued_at
+      - retry_state
+      - retry_eligible
+      properties:
+        attempt_number:
+          type: integer
+          format: int32
+          minimum: 0
+        canonical_domain:
+          type: string
+        failure_code:
+          type:
+          - string
+          - 'null'
+        failure_summary:
+          type:
+          - string
+          - 'null'
+        finished_at:
+          type:
+          - string
+          - 'null'
+        job_id:
+          type: string
+        queued_at:
+          type: string
+        retry_eligible:
+          type: boolean
+        retry_state:
+          $ref: '#/components/schemas/AdminCrawlRetryState'
+        status:
+          type: string
+    CrawlRequestResponse:
+      type: object
+      required:
+      - canonical_domain
+      - scheduled_at
+      properties:
+        canonical_domain:
+          type: string
+        scheduled_at:
+          type: string
+    CreateDomainRequest:
+      type: object
+      required:
+      - domain
+      properties:
+        domain:
+          type: string
+    CsvImportRequest:
+      type: object
+      required:
+      - source_name
+      - csv
+      properties:
+        csv:
+          type: string
+        source_name:
+          type: string
+    CsvImportResponse:
+      type: object
+      required:
+      - import_id
+      - source_name
+      - accepted_row_count
+      - duplicate_row_count
+      - rejected_row_count
+      properties:
+        accepted_row_count:
+          type: integer
+          format: int32
+          minimum: 0
+        duplicate_row_count:
+          type: integer
+          format: int32
+          minimum: 0
+        import_id:
+          type: string
+        rejected_row_count:
+          type: integer
+          format: int32
+          minimum: 0
+        source_name:
+          type: string
+    DependencyStatusResponse:
+      type: object
+      required:
+      - name
+      - status
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+    DetectionRuleListResponse:
+      type: object
+      required:
+      - rules
+      properties:
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/DetectionRuleResponse'
+    DetectionRuleResponse:
+      type: object
+      required:
+      - rule_slug
+      - technology_slug
+      - technology_name
+      - versions
+      properties:
+        active_version:
+          type:
+          - integer
+          - 'null'
+          format: int32
+          minimum: 0
+        draft_definition:
+          type:
+          - string
+          - 'null'
+        draft_updated_at:
+          type:
+          - string
+          - 'null'
+        rule_slug:
+          type: string
+        technology_name:
+          type: string
+        technology_slug:
+          type: string
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/DetectionRuleVersionResponse'
+    DetectionRuleVersionResponse:
+      type: object
+      required:
+      - version
+      - definition
+      - published_at
+      - is_active
+      properties:
+        definition:
+          type: string
+        is_active:
+          type: boolean
+        published_at:
+          type: string
+        version:
+          type: integer
+          format: int32
+          minimum: 0
+    DomainListResponse:
+      type: object
+      required:
+      - domains
+      properties:
+        domains:
+          type: array
+          items:
+            $ref: '#/components/schemas/DomainResponse'
+        next_cursor:
+          type:
+          - string
+          - 'null'
+    DomainResponse:
+      type: object
+      required:
+      - id
+      - canonical_domain
+      properties:
+        canonical_domain:
+          type: string
+        id:
+          type: string
+    ErrorBody:
+      type: object
+      required:
+      - code
+      - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    ErrorEnvelope:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorBody'
+    OperationsActivityResponse:
+      type: object
+      required:
+      - id
+      - title
+      - description
+      - occurred_at
+      - kind
+      properties:
+        description:
+          type: string
+        id:
+          type: string
+        kind:
+          type: string
+        occurred_at:
+          type: string
+        title:
+          type: string
+    OperationsAlertResponse:
+      type: object
+      required:
+      - code
+      - severity
+      - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        severity:
+          type: string
+    OperationsOverviewResponse:
+      type: object
+      required:
+      - generated_at
+      - system_status
+      - domain_count
+      - technology_count
+      - current_detection_count
+      - successful_crawl_count
+      - queue
+      - dependencies
+      - alertable_failures
+      - throughput
+      - workers
+      - activity
+      properties:
+        activity:
+          type: array
+          items:
+            $ref: '#/components/schemas/OperationsActivityResponse'
+        alertable_failures:
+          type: array
+          items:
+            $ref: '#/components/schemas/OperationsAlertResponse'
+        current_detection_count:
+          type: integer
+          format: int64
+          minimum: 0
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/DependencyStatusResponse'
+        domain_count:
+          type: integer
+          format: int64
+          minimum: 0
+        generated_at:
+          type: string
+        queue:
+          $ref: '#/components/schemas/QueueOverviewResponse'
+        successful_crawl_count:
+          type: integer
+          format: int64
+          minimum: 0
+        system_status:
+          type: string
+        technology_count:
+          type: integer
+          format: int64
+          minimum: 0
+        throughput:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThroughputPointResponse'
+        workers:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkerOverviewResponse'
+    PolicyResponse:
+      type: object
+      required:
+      - is_enabled
+      - priority
+      - desired_interval_hours
+      properties:
+        desired_interval_hours:
+          type: integer
+          format: int32
+          minimum: 0
+        is_enabled:
+          type: boolean
+        priority:
+          type: string
+    PublicAdoption:
+      type: object
+      required:
+      - slug
+      - count
+      properties:
+        count:
+          type: integer
+          format: int64
+          minimum: 0
+        slug:
+          type: string
+    PublicAdoptionHistory:
+      type: object
+      required:
+      - status
+      - series
+      properties:
+        available_from:
+          type:
+          - string
+          - 'null'
+        available_to:
+          type:
+          - string
+          - 'null'
+        series:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicAdoptionSeries'
+        status:
+          $ref: '#/components/schemas/PublicAdoptionHistoryStatus'
+    PublicAdoptionHistoryStatus:
+      type: string
+      enum:
+      - ready
+      - insufficient_history
+    PublicAdoptionPoint:
+      type: object
+      required:
+      - day
+      - count
+      properties:
+        count:
+          type: integer
+          format: int64
+          minimum: 0
+        day:
+          type: string
+    PublicAdoptionSeries:
+      type: object
+      required:
+      - slug
+      - display_name
+      - points
+      properties:
+        display_name:
+          type: string
+        points:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicAdoptionPoint'
+        slug:
+          type: string
+    PublicAnalyticsDiscovery:
+      type: object
+      required:
+      - large_migrations
+      - newest_domains
+      - frequently_crawled_domains
+      properties:
+        frequently_crawled_domains:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicFrequentCrawlDomain'
+        large_migrations:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicTechnologyMigration'
+        newest_domains:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicAnalyticsDomain'
+    PublicAnalyticsDomain:
+      type: object
+      required:
+      - canonical_domain
+      - first_indexed_at
+      properties:
+        canonical_domain:
+          type: string
+        first_indexed_at:
+          type: string
+          format: date-time
+    PublicAnalyticsMovers:
+      type: object
+      required:
+      - growing_technologies
+      - declining_technologies
+      - growing_providers
+      - declining_providers
+      properties:
+        declining_providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicAnalyticsProviderMover'
+        declining_technologies:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicAnalyticsTechnologyMover'
+        growing_providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicAnalyticsProviderMover'
+        growing_technologies:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicAnalyticsTechnologyMover'
+    PublicAnalyticsOverview:
+      type: object
+      required:
+      - domain_count
+      - technology_count
+      - current_detection_count
+      - country_count
+      properties:
+        country_count:
+          type: integer
+          format: int64
+          minimum: 0
+        current_detection_count:
+          type: integer
+          format: int64
+          minimum: 0
+        domain_count:
+          type: integer
+          format: int64
+          minimum: 0
+        technology_count:
+          type: integer
+          format: int64
+          minimum: 0
+    PublicAnalyticsProviderMover:
+      type: object
+      required:
+      - slug
+      - display_name
+      - adoption_count
+      - net_change
+      properties:
+        adoption_count:
+          type: integer
+          format: int64
+          minimum: 0
+        display_name:
+          type: string
+        net_change:
+          type: integer
+          format: int64
+        slug:
+          type: string
+    PublicAnalyticsRank:
+      type: object
+      required:
+      - slug
+      - display_name
+      - count
+      properties:
+        count:
+          type: integer
+          format: int64
+          minimum: 0
+        display_name:
+          type: string
+        slug:
+          type: string
+    PublicAnalyticsRankings:
+      type: object
+      required:
+      - technologies
+      - categories
+      - countries
+      - providers
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicAnalyticsRank'
+        countries:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicCountryRank'
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicAnalyticsRank'
+        technologies:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicAnalyticsRank'
+    PublicAnalyticsTechnologyMover:
+      type: object
+      required:
+      - slug
+      - display_name
+      - category_slug
+      - category_name
+      - adoption_count
+      - net_change
+      properties:
+        adoption_count:
+          type: integer
+          format: int64
+          minimum: 0
+        category_name:
+          type: string
+        category_slug:
+          type: string
+        display_name:
+          type: string
+        net_change:
+          type: integer
+          format: int64
+        slug:
+          type: string
+    PublicChange:
+      type: object
+      required:
+      - kind
+      - category_slug
+      - observed_at
+      properties:
+        category_slug:
+          type: string
+        from_technology_slug:
+          type:
+          - string
+          - 'null'
+        from_version:
+          type:
+          - string
+          - 'null'
+        kind:
+          type: string
+        observed_at:
+          type: string
+          format: date-time
+        reprocessing_run_id:
+          type:
+          - string
+          - 'null'
+        technology_slug:
+          type:
+          - string
+          - 'null'
+        to_technology_slug:
+          type:
+          - string
+          - 'null'
+        to_version:
+          type:
+          - string
+          - 'null'
+    PublicChangePage:
+      type: object
+      description: A cursor page of immutable technology changes for one public domain.
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicChange'
+        next_cursor:
+          type:
+          - string
+          - 'null'
+    PublicChangeTrend:
+      type: object
+      required:
+      - day
+      - added
+      - removed
+      - migrated
+      properties:
+        added:
+          type: integer
+          format: int64
+          minimum: 0
+        day:
+          type: string
+        migrated:
+          type: integer
+          format: int64
+          minimum: 0
+        removed:
+          type: integer
+          format: int64
+          minimum: 0
+    PublicComparisonCell:
+      type: object
+      required:
+      - category_slug
+      - canonical_domain
+      - state
+      properties:
+        canonical_domain:
+          type: string
+        category_slug:
+          type: string
+        last_observed_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        state:
+          type: string
+        technology_slug:
+          type:
+          - string
+          - 'null'
+    PublicComparisonResponse:
+      type: object
+      required:
+      - domains
+      - cells
+      properties:
+        cells:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicComparisonCell'
+        domains:
+          type: array
+          items:
+            type: string
+    PublicCountryRank:
+      type: object
+      required:
+      - country_code
+      - count
+      properties:
+        count:
+          type: integer
+          format: int64
+          minimum: 0
+        country_code:
+          type: string
+    PublicCrawl:
+      type: object
+      required:
+      - id
+      - requested_url
+      - final_url
+      - response_status
+      - captured_at
+      properties:
+        captured_at:
+          type: string
+          format: date-time
+        final_url:
+          type: string
+        id:
+          type: string
+        requested_url:
+          type: string
+        response_status:
+          type: integer
+          format: int32
+          minimum: 0
+    PublicCrawlDetail:
+      type: object
+      required:
+      - crawl
+      - response_headers
+      - redirect_chain
+      - dns
+      - tls
+      properties:
+        country_code:
+          type:
+          - string
+          - 'null'
+        crawl:
+          $ref: '#/components/schemas/PublicCrawl'
+        dns:
+          $ref: '#/components/schemas/PublicDnsObservation'
+        redirect_chain:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicRedirect'
+        response_headers:
+          type: object
+          additionalProperties:
+            type: string
+          propertyNames:
+            type: string
+        tls:
+          $ref: '#/components/schemas/PublicTlsObservation'
+    PublicCrawlPage:
+      type: object
+      description: A cursor page of immutable crawl snapshots for one public domain.
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicCrawl'
+        next_cursor:
+          type:
+          - string
+          - 'null'
+    PublicDnsObservation:
+      type: object
+      required:
+      - source
+      - observed_at
+      - availability
+      - addresses
+      properties:
+        addresses:
+          type: array
+          items:
+            type: string
+        availability:
+          type: string
+        observed_at:
+          type: string
+          format: date-time
+        queried_name:
+          type:
+          - string
+          - 'null'
+        source:
+          type: string
+        unavailable_reason:
+          type:
+          - string
+          - 'null'
+    PublicDomainProfile:
+      type: object
+      required:
+      - canonical_domain
+      - first_indexed_at
+      - technologies
+      properties:
+        canonical_domain:
+          type: string
+        country_code:
+          type:
+          - string
+          - 'null'
+        first_indexed_at:
+          type: string
+          format: date-time
+        last_crawled_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        technologies:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicTechnology'
+    PublicDomainSearchFacets:
+      type: object
+      required:
+      - technology
+      - category
+      - country
+      properties:
+        category:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+            minimum: 0
+          propertyNames:
+            type: string
+        country:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+            minimum: 0
+          propertyNames:
+            type: string
+        technology:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+            minimum: 0
+          propertyNames:
+            type: string
+    PublicDomainSearchHit:
+      type: object
+      required:
+      - canonical_domain
+      - technology_slugs
+      - category_slugs
+      - updated_at
+      properties:
+        canonical_domain:
+          type: string
+        category_slugs:
+          type: array
+          items:
+            type: string
+        country_code:
+          type:
+          - string
+          - 'null'
+        last_crawled_at:
+          type:
+          - string
+          - 'null'
+        technology_slugs:
+          type: array
+          items:
+            type: string
+        updated_at:
+          type: string
+    PublicDomainSearchPage:
+      type: object
+      required:
+      - results
+      - estimated_total_hits
+      - facets
+      - limit
+      - offset
+      - query_at
+      properties:
+        estimated_total_hits:
+          type: integer
+          format: int64
+          minimum: 0
+        facets:
+          $ref: '#/components/schemas/PublicDomainSearchFacets'
+        limit:
+          type: integer
+          minimum: 0
+        offset:
+          type: integer
+          minimum: 0
+        query_at:
+          type: string
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicDomainSearchHit'
+    PublicDomainSummary:
+      type: object
+      required:
+      - canonical_domain
+      properties:
+        canonical_domain:
+          type: string
+        last_crawled_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    PublicEvidence:
+      type: object
+      required:
+      - source
+      - key
+      - value
+      properties:
+        key:
+          type: string
+        source:
+          type: string
+        value:
+          type: string
+    PublicFrequentCrawlDomain:
+      type: object
+      required:
+      - canonical_domain
+      - crawl_count
+      - last_crawled_at
+      properties:
+        canonical_domain:
+          type: string
+        crawl_count:
+          type: integer
+          format: int64
+          minimum: 0
+        last_crawled_at:
+          type: string
+          format: date-time
+    PublicProviderDomainPage:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicDomainSummary'
+        next_cursor:
+          type:
+          - string
+          - 'null'
+    PublicProviderProfile:
+      type: object
+      required:
+      - slug
+      - display_name
+      - adoption_count
+      - net_change
+      - trend
+      - technologies
+      - domains
+      properties:
+        adoption_count:
+          type: integer
+          format: int64
+          minimum: 0
+        display_name:
+          type: string
+        domains:
+          $ref: '#/components/schemas/PublicProviderDomainPage'
+        net_change:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        technologies:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicTechnologyLibraryItem'
+        trend:
+          $ref: '#/components/schemas/PublicTechnologyTrend'
+    PublicRedirect:
+      type: object
+      required:
+      - from_url
+      - to_url
+      - status
+      properties:
+        from_url:
+          type: string
+        status:
+          type: integer
+          format: int32
+          minimum: 0
+        to_url:
+          type: string
+    PublicRefreshRequest:
+      type: object
+      description: Confirmation that a public refresh request was recorded for scheduler processing.
+      required:
+      - accepted_at
+      - next_allowed_at
+      properties:
+        accepted_at:
+          type: string
+          format: date-time
+        next_allowed_at:
+          type: string
+          format: date-time
+    PublicRelatedTechnology:
+      type: object
+      required:
+      - slug
+      - display_name
+      - category_slug
+      - category_name
+      - shared_domain_count
+      properties:
+        category_name:
+          type: string
+        category_slug:
+          type: string
+        display_name:
+          type: string
+        shared_domain_count:
+          type: integer
+          format: int64
+          minimum: 0
+        slug:
+          type: string
+    PublicTechnology:
+      type: object
+      required:
+      - slug
+      - display_name
+      - category_slug
+      - category_name
+      - confidence
+      - method
+      - rule_version
+      - first_observed_at
+      - last_observed_at
+      - evidence
+      properties:
+        category_name:
+          type: string
+        category_slug:
+          type: string
+        confidence:
+          type: integer
+          format: int32
+          minimum: 0
+        display_name:
+          type: string
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicEvidence'
+        first_observed_at:
+          type: string
+          format: date-time
+        last_observed_at:
+          type: string
+          format: date-time
+        method:
+          type: string
+        rule_version:
+          type: integer
+          format: int32
+          minimum: 0
+        slug:
+          type: string
+    PublicTechnologyCategory:
+      type: object
+      required:
+      - slug
+      - display_name
+      properties:
+        display_name:
+          type: string
+        slug:
+          type: string
+    PublicTechnologyDomainPage:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicDomainSummary'
+        next_cursor:
+          type:
+          - string
+          - 'null'
+    PublicTechnologyHistoryPoint:
+      type: object
+      required:
+      - day
+      - net_change
+      properties:
+        day:
+          type: string
+        net_change:
+          type: integer
+          format: int64
+    PublicTechnologyLibraryItem:
+      type: object
+      required:
+      - slug
+      - display_name
+      - category_slug
+      - category_name
+      - adoption_count
+      - net_change
+      - trend
+      properties:
+        adoption_count:
+          type: integer
+          format: int64
+          minimum: 0
+        category_name:
+          type: string
+        category_slug:
+          type: string
+        display_name:
+          type: string
+        net_change:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        trend:
+          $ref: '#/components/schemas/PublicTechnologyTrend'
+    PublicTechnologyLibraryPage:
+      type: object
+      required:
+      - items
+      - categories
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicTechnologyCategory'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicTechnologyLibraryItem'
+        next_cursor:
+          type:
+          - string
+          - 'null'
+    PublicTechnologyMigration:
+      type: object
+      required:
+      - from_slug
+      - from_display_name
+      - to_slug
+      - to_display_name
+      - domain_count
+      properties:
+        domain_count:
+          type: integer
+          format: int64
+          minimum: 0
+        from_display_name:
+          type: string
+        from_slug:
+          type: string
+        to_display_name:
+          type: string
+        to_slug:
+          type: string
+    PublicTechnologyProfile:
+      type: object
+      required:
+      - slug
+      - display_name
+      - category_slug
+      - category_name
+      - adoption_count
+      - net_change
+      - trend
+      - history
+      - related_technologies
+      - domains
+      properties:
+        adoption_count:
+          type: integer
+          format: int64
+          minimum: 0
+        category_name:
+          type: string
+        category_slug:
+          type: string
+        display_name:
+          type: string
+        domains:
+          $ref: '#/components/schemas/PublicTechnologyDomainPage'
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicTechnologyHistoryPoint'
+        net_change:
+          type: integer
+          format: int64
+        related_technologies:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicRelatedTechnology'
+        slug:
+          type: string
+        trend:
+          $ref: '#/components/schemas/PublicTechnologyTrend'
+    PublicTechnologyTrend:
+      type: string
+      enum:
+      - growing
+      - declining
+      - stable
+    PublicTlsObservation:
+      type: object
+      required:
+      - source
+      - observed_at
+      - availability
+      - subject_alternative_names
+      properties:
+        availability:
+          type: string
+        certificate_issuer:
+          type:
+          - string
+          - 'null'
+        certificate_not_after:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        certificate_not_before:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        certificate_subject:
+          type:
+          - string
+          - 'null'
+        cipher_suite:
+          type:
+          - string
+          - 'null'
+        observed_at:
+          type: string
+          format: date-time
+        protocol:
+          type:
+          - string
+          - 'null'
+        source:
+          type: string
+        subject_alternative_names:
+          type: array
+          items:
+            type: string
+        unavailable_reason:
+          type:
+          - string
+          - 'null'
+        validation_status:
+          type:
+          - string
+          - 'null'
+    QueueOverviewResponse:
+      type: object
+      required:
+      - ready_count
+      - processing_count
+      - scheduled_count
+      properties:
+        processing_count:
+          type: integer
+          format: int64
+          minimum: 0
+        ready_count:
+          type: integer
+          format: int64
+          minimum: 0
+        scheduled_count:
+          type: integer
+          format: int64
+          minimum: 0
+    ReprocessingRunListResponse:
+      type: object
+      required:
+      - runs
+      properties:
+        runs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReprocessingRunResponse'
+    ReprocessingRunResponse:
+      type: object
+      required:
+      - id
+      - rule_slug
+      - rule_version
+      - status
+      - total_snapshot_count
+      - succeeded_snapshot_count
+      - failed_snapshot_count
+      - requested_at
+      properties:
+        failed_snapshot_count:
+          type: integer
+          format: int32
+          minimum: 0
+        finished_at:
+          type:
+          - string
+          - 'null'
+        id:
+          type: string
+        requested_at:
+          type: string
+        rule_slug:
+          type: string
+        rule_version:
+          type: integer
+          format: int32
+          minimum: 0
+        started_at:
+          type:
+          - string
+          - 'null'
+        status:
+          type: string
+        succeeded_snapshot_count:
+          type: integer
+          format: int32
+          minimum: 0
+        total_snapshot_count:
+          type: integer
+          format: int32
+          minimum: 0
+    RuleDraftRequest:
+      type: object
+      required:
+      - definition
+      properties:
+        definition:
+          type: string
+          description: A deterministic rule definition encoded as a JSON object.
+    RuleFixtureSignal:
+      type: object
+      required:
+      - source
+      - key
+      - value
+      properties:
+        key:
+          type: string
+        source:
+          type: string
+        value:
+          type: string
+    RuleFixtureTestRequest:
+      type: object
+      required:
+      - signals
+      properties:
+        signals:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleFixtureSignal'
+    RuleFixtureTestResponse:
+      type: object
+      required:
+      - passed
+      - confidence
+      - threshold
+      properties:
+        confidence:
+          type: integer
+          format: int32
+          minimum: 0
+        passed:
+          type: boolean
+        threshold:
+          type: integer
+          format: int32
+          minimum: 0
+    StartReprocessingRequest:
+      type: object
+      required:
+      - idempotency_key
+      properties:
+        idempotency_key:
+          type: string
+    ThroughputPointResponse:
+      type: object
+      required:
+      - observed_at
+      - completed_count
+      properties:
+        completed_count:
+          type: integer
+          format: int64
+          minimum: 0
+        observed_at:
+          type: string
+    UpdatePolicyRequest:
+      type: object
+      required:
+      - is_enabled
+      - priority
+      - desired_interval_hours
+      properties:
+        desired_interval_hours:
+          type: integer
+          format: int32
+          minimum: 0
+        is_enabled:
+          type: boolean
+        priority:
+          type: string
+    WorkerOverviewResponse:
+      type: object
+      required:
+      - name
+      - region
+      - in_flight_work
+      - completed_total
+      - status
+      - last_heartbeat_at
+      properties:
+        completed_total:
+          type: integer
+          format: int64
+          minimum: 0
+        in_flight_work:
+          type: integer
+          format: int32
+          minimum: 0
+        last_heartbeat_at:
+          type: string
+        name:
+          type: string
+        region:
+          type: string
+        status:
+          type: string
+  securitySchemes:
+    oidc_bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Bearer
