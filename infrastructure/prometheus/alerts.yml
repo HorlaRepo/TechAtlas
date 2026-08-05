@@ -1,0 +1,27 @@
+groups:
+  - name: techatlas-baseline
+    rules:
+      - alert: TechAtlasDependencyUnavailable
+        expr: techatlas_dependency_ready == 0
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: A TechAtlas dependency is unavailable.
+      - alert: TechAtlasSchedulerStalled
+        expr: time() - techatlas_last_successful_work_timestamp_seconds{job="techatlas-scheduler"} > 300
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: The scheduler has not completed a successful tick.
+      - alert: TechAtlasIndexLagging
+        expr: techatlas_value{name="index_lag_seconds"} > 900 or techatlas_value{name="index_dead_jobs"} > 0
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: Search index processing is delayed or has dead jobs.
+      - alert: TechAtlasCrawlFailuresElevated
+        expr: sum(rate(techatlas_operations_total{operation="crawl_job",outcome="error"}[5m])) / clamp_min(sum(rate(techatlas_operations_total{operation="crawl_job"}[5m])), 1) > 0.1
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: Crawl job failures exceed 10 percent.

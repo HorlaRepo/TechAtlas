@@ -1,0 +1,410 @@
+name: techatlas
+
+x-logging: &json-logging
+  driver: local
+  options:
+    max-size: 10m
+    max-file: "3"
+
+services:
+  caddy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    environment:
+      TECHATLAS_PUBLIC_HOST: ${TECHATLAS_PUBLIC_HOST:?set the public DNS name}
+      CADDY_EMAIL: ${CADDY_EMAIL:?set the ACME contact email}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+      dashboard:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "caddy", "version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits: { cpus: "0.20", memory: 128M }
+    logging: *json-logging
+
+  dashboard:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/dashboard.Dockerfile
+      args:
+        VITE_AUTH0_DOMAIN: ${VITE_AUTH0_DOMAIN:?set VITE_AUTH0_DOMAIN}
+        VITE_AUTH0_CLIENT_ID: ${VITE_AUTH0_CLIENT_ID:?set VITE_AUTH0_CLIENT_ID}
+        VITE_AUTH0_AUDIENCE: ${VITE_AUTH0_AUDIENCE:?set VITE_AUTH0_AUDIENCE}
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits: { cpus: "0.25", memory: 256M }
+    logging: *json-logging
+
+  postgres:
+    image: postgres:16.11-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    deploy:
+      resources:
+        limits: { cpus: "1.00", memory: 3G }
+    logging: *json-logging
+
+  redis:
+    image: redis:7.4.2-alpine
+    command: redis-server --appendonly yes --save 60 1000
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    deploy:
+      resources:
+        limits: { cpus: "0.25", memory: 512M }
+    logging: *json-logging
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.13.4
+    restart: unless-stopped
+    environment:
+      MEILI_ENV: production
+      MEILI_NO_ANALYTICS: "true"
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?set MEILI_MASTER_KEY}
+    volumes:
+      - meilisearch_data:/meili_data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:7700/health | grep -q available"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    deploy:
+      resources:
+        limits: { cpus: "0.75", memory: 1536M }
+    logging: *json-logging
+
+  migrate:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/backend.Dockerfile
+      args: { BINARY: techatlas-cli }
+    command: ["migrate-database"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:?set POSTGRES_USER}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB}
+      CLI_DATABASE_CONNECT_TIMEOUT_MS: "10000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    deploy:
+      resources:
+        limits: { cpus: "0.50", memory: 512M }
+    logging: *json-logging
+
+  artifact-init:
+    image: busybox:1.37.0
+    command: ["sh", "-c", "mkdir -p /artifacts && chown -R 10001:10001 /artifacts"]
+    volumes:
+      - artifacts_data:/artifacts
+    restart: "no"
+    logging: *json-logging
+
+  api:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/backend.Dockerfile
+      args: { BINARY: techatlas-api }
+    restart: unless-stopped
+    environment:
+      API_BIND_ADDRESS: 0.0.0.0:3000
+      DATABASE_URL: postgres://${POSTGRES_USER:?set POSTGRES_USER}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      MEILISEARCH_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?set MEILI_MASTER_KEY}
+      ADMIN_OIDC_ISSUER: ${ADMIN_OIDC_ISSUER:?set ADMIN_OIDC_ISSUER}
+      ADMIN_OIDC_AUDIENCE: ${ADMIN_OIDC_AUDIENCE:?set ADMIN_OIDC_AUDIENCE}
+      ADMIN_OIDC_JWKS_URL: ${ADMIN_OIDC_JWKS_URL:?set ADMIN_OIDC_JWKS_URL}
+      ADMIN_RATE_LIMIT_PER_MINUTE: ${ADMIN_RATE_LIMIT_PER_MINUTE:-60}
+      ADMIN_MUTATION_RATE_LIMIT_PER_MINUTE: ${ADMIN_MUTATION_RATE_LIMIT_PER_MINUTE:-30}
+      PUBLIC_STALE_AFTER_DAYS: ${PUBLIC_STALE_AFTER_DAYS:-30}
+      PUBLIC_REFRESH_COOLDOWN_HOURS: ${PUBLIC_REFRESH_COOLDOWN_HOURS:-24}
+      RUST_LOG: ${API_RUST_LOG:-techatlas_api=info,tower_http=info}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      DEPENDENCY_CHECK_TIMEOUT_MS: ${DEPENDENCY_CHECK_TIMEOUT_MS:-2000}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:3000/readyz"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        limits: { cpus: "0.75", memory: 768M }
+    logging: *json-logging
+
+  scheduler:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/backend.Dockerfile
+      args: { BINARY: techatlas-scheduler }
+    restart: unless-stopped
+    environment:
+      SCHEDULER_BIND_ADDRESS: 0.0.0.0:3001
+      DATABASE_URL: postgres://${POSTGRES_USER:?set POSTGRES_USER}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      RUST_LOG: ${SCHEDULER_RUST_LOG:-techatlas_scheduler=info}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:3001/readyz"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        limits: { cpus: "0.20", memory: 256M }
+    logging: *json-logging
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/backend.Dockerfile
+      args: { BINARY: techatlas-worker }
+    restart: unless-stopped
+    environment:
+      WORKER_BIND_ADDRESS: 0.0.0.0:3002
+      DATABASE_URL: postgres://${POSTGRES_USER:?set POSTGRES_USER}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      MEILISEARCH_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?set MEILI_MASTER_KEY}
+      WORKER_CONSUMER_NAME: ${WORKER_CONSUMER_NAME:-worker-production-1}
+      WORKER_REGION: ${WORKER_REGION:-production}
+      WORKER_HEARTBEAT_INTERVAL_MS: ${WORKER_HEARTBEAT_INTERVAL_MS:-15000}
+      WORKER_MAX_CONCURRENCY: ${WORKER_MAX_CONCURRENCY:-2}
+      WORKER_ARTIFACT_ROOT: /var/lib/techatlas/artifacts
+      WORKER_ARTIFACT_RETENTION_DAYS: ${WORKER_ARTIFACT_RETENTION_DAYS:-30}
+      WORKER_GEOIP_DATABASE_PATH: /geoip/GeoLite2-Country.mmdb
+      WORKER_GEOIP_DATABASE_VERSION: ${WORKER_GEOIP_DATABASE_VERSION:?set WORKER_GEOIP_DATABASE_VERSION}
+      WORKER_CRAWLER_USER_AGENT: ${WORKER_CRAWLER_USER_AGENT:?set WORKER_CRAWLER_USER_AGENT}
+      WORKER_CRAWLER_ROBOTS_USER_AGENT: ${WORKER_CRAWLER_ROBOTS_USER_AGENT:?set WORKER_CRAWLER_ROBOTS_USER_AGENT}
+      WORKER_CRAWLER_CONTACT: ${WORKER_CRAWLER_CONTACT:?set WORKER_CRAWLER_CONTACT}
+      RUST_LOG: ${WORKER_RUST_LOG:-techatlas_worker=info}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    volumes:
+      - artifacts_data:/var/lib/techatlas/artifacts
+      - ${WORKER_GEOIP_DATABASE_PATH:?set WORKER_GEOIP_DATABASE_PATH}:/geoip/GeoLite2-Country.mmdb:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      artifact-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:3002/readyz"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    stop_grace_period: 60s
+    deploy:
+      resources:
+        limits: { cpus: "1.00", memory: 1536M }
+    logging: *json-logging
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    restart: unless-stopped
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus", "--storage.tsdb.retention.time=14d"]
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits: { cpus: "0.25", memory: 512M }
+    logging: *json-logging
+
+  tempo:
+    image: grafana/tempo:2.7.2
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    volumes:
+      - ../tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/tmp/tempo
+    deploy:
+      resources:
+        limits: { cpus: "0.25", memory: 512M }
+    logging: *json-logging
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.120.0
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yml"]
+    volumes:
+      - ../otel-collector/config.yml:/etc/otelcol/config.yml:ro
+    depends_on:
+      - tempo
+    deploy:
+      resources:
+        limits: { cpus: "0.25", memory: 256M }
+    logging: *json-logging
+
+  grafana:
+    image: grafana/grafana:11.5.2
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3003}:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - ../grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - tempo
+    deploy:
+      resources:
+        limits: { cpus: "0.25", memory: 256M }
+    logging: *json-logging
+
+  maintenance-cli:
+    profiles: ["maintenance"]
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/backend.Dockerfile
+      args: { BINARY: techatlas-cli }
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:?set POSTGRES_USER}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB}
+      MEILISEARCH_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?set MEILI_MASTER_KEY}
+      WORKER_ARTIFACT_ROOT: /var/lib/techatlas/artifacts
+      CLI_DATABASE_CONNECT_TIMEOUT_MS: "10000"
+    volumes:
+      - artifacts_data:/var/lib/techatlas/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    logging: *json-logging
+
+  backup:
+    profiles: ["maintenance"]
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/backup.Dockerfile
+    command: ["/backup/backup.sh"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:?set POSTGRES_USER}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:?set BACKUP_S3_ENDPOINT}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:?set BACKUP_S3_BUCKET}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-auto}
+      BACKUP_S3_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID:?set BACKUP_S3_ACCESS_KEY_ID}
+      BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:?set BACKUP_S3_SECRET_ACCESS_KEY}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-techatlas}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - artifacts_data:/artifacts:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits: { cpus: "1.00", memory: 1G }
+    logging: *json-logging
+
+  artifact-pruner:
+    profiles: ["maintenance"]
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/backend.Dockerfile
+      args: { BINARY: techatlas-cli }
+    command: ["prune-expired-artifacts"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:?set POSTGRES_USER}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB}
+      WORKER_ARTIFACT_ROOT: /var/lib/techatlas/artifacts
+      CLI_DATABASE_CONNECT_TIMEOUT_MS: "10000"
+    volumes:
+      - artifacts_data:/var/lib/techatlas/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *json-logging
+
+  restore:
+    profiles: ["maintenance"]
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/backup.Dockerfile
+    command: ["/backup/restore.sh"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:?set POSTGRES_USER}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:?set BACKUP_S3_ENDPOINT}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:?set BACKUP_S3_BUCKET}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-auto}
+      BACKUP_S3_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID:?set BACKUP_S3_ACCESS_KEY_ID}
+      BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:?set BACKUP_S3_SECRET_ACCESS_KEY}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-techatlas}
+    volumes:
+      - artifacts_data:/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *json-logging
+
+volumes:
+  caddy_data:
+  caddy_config:
+  postgres_data:
+  redis_data:
+  meilisearch_data:
+  artifacts_data:
+  prometheus_data:
+  tempo_data:
+  grafana_data:

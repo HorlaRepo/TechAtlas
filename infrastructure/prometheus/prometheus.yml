@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+rule_files:
+  - /etc/prometheus/alerts.yml
+scrape_configs:
+  - job_name: techatlas-api
+    static_configs:
+      - targets: [api:3000]
+  - job_name: techatlas-scheduler
+    static_configs:
+      - targets: [scheduler:3001]
+  - job_name: techatlas-worker
+    static_configs:
+      - targets: [worker:3002]

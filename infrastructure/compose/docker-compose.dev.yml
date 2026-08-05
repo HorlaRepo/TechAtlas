@@ -1,0 +1,273 @@
+name: techatlas
+
+services:
+  migrate:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/api.Dockerfile
+    working_dir: /workspace
+    command: cargo run --locked -p techatlas-cli -- migrate-database
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-techatlas}:${POSTGRES_PASSWORD:-techatlas_dev_password}@postgres:5432/${POSTGRES_DB:-techatlas}
+      CLI_DATABASE_CONNECT_TIMEOUT_MS: ${CLI_DATABASE_CONNECT_TIMEOUT_MS:-5000}
+    volumes:
+      - ../..:/workspace
+      - api_cargo_registry:/usr/local/cargo/registry
+      - api_cargo_git:/usr/local/cargo/git
+      - api_target:/workspace/target
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/api.Dockerfile
+    working_dir: /workspace
+    command: cargo run --locked -p techatlas-api --bin techatlas-api
+    environment:
+      API_BIND_ADDRESS: 0.0.0.0:3000
+      DATABASE_URL: postgres://${POSTGRES_USER:-techatlas}:${POSTGRES_PASSWORD:-techatlas_dev_password}@postgres:5432/${POSTGRES_DB:-techatlas}
+      REDIS_URL: redis://redis:6379
+      MEILISEARCH_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-techatlas_dev_master_key_change_before_production}
+      ADMIN_OIDC_ISSUER: ${ADMIN_OIDC_ISSUER:-https://dev-6cezdkyjkqhpt8ak.us.auth0.com/}
+      ADMIN_OIDC_AUDIENCE: ${ADMIN_OIDC_AUDIENCE:-https://api.techatlas}
+      ADMIN_OIDC_JWKS_URL: ${ADMIN_OIDC_JWKS_URL:-https://dev-6cezdkyjkqhpt8ak.us.auth0.com/.well-known/jwks.json}
+      ADMIN_RATE_LIMIT_PER_MINUTE: ${ADMIN_RATE_LIMIT_PER_MINUTE:-60}
+      ADMIN_MUTATION_RATE_LIMIT_PER_MINUTE: ${ADMIN_MUTATION_RATE_LIMIT_PER_MINUTE:-30}
+      PUBLIC_STALE_AFTER_DAYS: ${PUBLIC_STALE_AFTER_DAYS:-30}
+      PUBLIC_REFRESH_COOLDOWN_HOURS: ${PUBLIC_REFRESH_COOLDOWN_HOURS:-24}
+      RUST_LOG: ${RUST_LOG:-techatlas_api=info,tower_http=info}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      DEPENDENCY_CHECK_TIMEOUT_MS: ${DEPENDENCY_CHECK_TIMEOUT_MS:-2000}
+    ports:
+      - "${API_PORT:-3000}:3000"
+    volumes:
+      - ../..:/workspace
+      - api_cargo_registry:/usr/local/cargo/registry
+      - api_cargo_git:/usr/local/cargo/git
+      - api_target:/workspace/target
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+
+  scheduler:
+    profiles: ["pipeline"]
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/api.Dockerfile
+    working_dir: /workspace
+    command: cargo run --locked -p techatlas-scheduler
+    environment:
+      SCHEDULER_BIND_ADDRESS: 0.0.0.0:3001
+      DATABASE_URL: postgres://${POSTGRES_USER:-techatlas}:${POSTGRES_PASSWORD:-techatlas_dev_password}@postgres:5432/${POSTGRES_DB:-techatlas}
+      REDIS_URL: redis://redis:6379
+      RUST_LOG: ${SCHEDULER_RUST_LOG:-techatlas_scheduler=info}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    ports:
+      - "${SCHEDULER_PORT:-3001}:3001"
+    volumes:
+      - ../..:/workspace
+      - pipeline_cargo_registry:/usr/local/cargo/registry
+      - pipeline_cargo_git:/usr/local/cargo/git
+      - pipeline_target:/workspace/target
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    profiles: ["pipeline"]
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/api.Dockerfile
+    working_dir: /workspace
+    command: cargo run --locked -p techatlas-worker
+    environment:
+      WORKER_BIND_ADDRESS: 0.0.0.0:3002
+      DATABASE_URL: postgres://${POSTGRES_USER:-techatlas}:${POSTGRES_PASSWORD:-techatlas_dev_password}@postgres:5432/${POSTGRES_DB:-techatlas}
+      REDIS_URL: redis://redis:6379
+      MEILISEARCH_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-techatlas_dev_master_key_change_before_production}
+      WORKER_CONSUMER_NAME: ${WORKER_CONSUMER_NAME:-worker-local-1}
+      WORKER_REGION: ${WORKER_REGION:-local}
+      WORKER_HEARTBEAT_INTERVAL_MS: ${WORKER_HEARTBEAT_INTERVAL_MS:-15000}
+      WORKER_ARTIFACT_ROOT: /var/lib/techatlas/artifacts
+      WORKER_GEOIP_DATABASE_PATH: ${WORKER_GEOIP_DATABASE_PATH:+/geoip/GeoLite2-Country.mmdb}
+      WORKER_GEOIP_DATABASE_VERSION: ${WORKER_GEOIP_DATABASE_VERSION:-}
+      RUST_LOG: ${WORKER_RUST_LOG:-techatlas_worker=info}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    ports:
+      - "${WORKER_PORT:-3002}:3002"
+    volumes:
+      - ../..:/workspace
+      - worker_artifacts:/var/lib/techatlas/artifacts
+      - worker_cargo_registry:/usr/local/cargo/registry
+      - worker_cargo_git:/usr/local/cargo/git
+      - worker_target:/workspace/target
+      - ${WORKER_GEOIP_DATABASE_PATH:-/dev/null}:/geoip/GeoLite2-Country.mmdb:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+
+  prometheus:
+    profiles: ["observability"]
+    image: prom/prometheus:v3.5.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus"]
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - api
+
+  tempo:
+    profiles: ["observability"]
+    image: grafana/tempo:2.7.2
+    user: "0"
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    ports:
+      - "${TEMPO_PORT:-3200}:3200"
+    volumes:
+      - ../tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/tmp/tempo
+
+  otel-collector:
+    profiles: ["observability"]
+    image: otel/opentelemetry-collector:0.120.0
+    command: ["--config=/etc/otelcol/config.yml"]
+    ports:
+      - "${OTEL_GRPC_PORT:-4317}:4317"
+    volumes:
+      - ../otel-collector/config.yml:/etc/otelcol/config.yml:ro
+    depends_on:
+      - tempo
+
+  grafana:
+    profiles: ["observability"]
+    image: grafana/grafana:11.5.2
+    ports:
+      - "${GRAFANA_PORT:-3003}:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    volumes:
+      - ../grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - tempo
+
+  oidc-test-fixture:
+    profiles: ["test-fixture"]
+    image: node:24-alpine
+    command: ["node", "/fixture/oidc-test-fixture.mjs"]
+    environment:
+      OIDC_TEST_ISSUER: http://oidc-test-fixture:8080
+      OIDC_TEST_AUDIENCE: techatlas-e2e
+      OIDC_TEST_PORT: "8080"
+    ports:
+      - "${OIDC_TEST_FIXTURE_PORT:-8080}:8080"
+    volumes:
+      - ../../scripts/fixtures:/fixture:ro
+
+  dashboard:
+    image: node:24-alpine
+    working_dir: /workspace
+    command: >-
+      sh -c "corepack enable && pnpm config set store-dir /pnpm/store && pnpm install --frozen-lockfile && pnpm --filter @techatlas/dashboard dev --host 0.0.0.0"
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      VITE_API_PROXY_TARGET: http://api:3000
+      VITE_AUTH0_DOMAIN: ${VITE_AUTH0_DOMAIN:-dev-6cezdkyjkqhpt8ak.us.auth0.com}
+      VITE_AUTH0_CLIENT_ID: ${VITE_AUTH0_CLIENT_ID:-0vvQlrj9ZReU7f4Z2KwF1ypihzL96Zh2}
+      VITE_AUTH0_AUDIENCE: ${VITE_AUTH0_AUDIENCE:-https://api.techatlas}
+    ports:
+      - "${DASHBOARD_PORT:-5173}:5173"
+    volumes:
+      - ../..:/workspace
+      - dashboard_node_modules:/workspace/node_modules
+      - pnpm_store:/pnpm/store
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-techatlas}
+      POSTGRES_USER: ${POSTGRES_USER:-techatlas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-techatlas_dev_password}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.13
+    environment:
+      MEILI_ENV: development
+      MEILI_NO_ANALYTICS: "true"
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-techatlas_dev_master_key_change_before_production}
+    ports:
+      - "${MEILISEARCH_PORT:-7700}:7700"
+    volumes:
+      - meilisearch_data:/meili_data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:7700/health | grep -q available"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  api_cargo_registry:
+  api_cargo_git:
+  api_target:
+  pipeline_cargo_registry:
+  pipeline_cargo_git:
+  pipeline_target:
+  worker_cargo_registry:
+  worker_cargo_git:
+  worker_target:
+  dashboard_node_modules:
+  pnpm_store:
+  postgres_data:
+  redis_data:
+  meilisearch_data:
+  prometheus_data:
+  tempo_data:
+  grafana_data:
+  worker_artifacts:

@@ -1,0 +1,22 @@
+{
+	email {$CADDY_EMAIL}
+	log {
+		output stdout
+		format json
+	}
+}
+
+{$TECHATLAS_PUBLIC_HOST} {
+	encode zstd gzip
+	request_body {
+		max_size 10MB
+	}
+	header -Server
+
+	@internal path /metrics /healthz /readyz
+	respond @internal 404
+
+	@api path /api/*
+	reverse_proxy @api api:3000
+	reverse_proxy dashboard:8080
+}

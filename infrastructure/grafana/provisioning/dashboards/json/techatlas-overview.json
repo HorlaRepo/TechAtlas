@@ -1,0 +1,36 @@
+{
+  "title": "TechAtlas Operations",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Ready dependencies",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(techatlas_dependency_ready)", "refId": "A" }],
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Crawl jobs by outcome",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(rate(techatlas_operations_total{operation=\"crawl_job\"}[5m])) by (outcome)", "refId": "A" }],
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 0 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Index lag",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "techatlas_value{name=\"index_lag_seconds\"}", "refId": "A" }],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP request duration",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(techatlas_http_request_duration_seconds_bucket[5m])) by (le, job))", "refId": "A" }],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    }
+  ]
+}
