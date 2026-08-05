@@ -1,0 +1,47 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+!.env.production.example
+.envrc
+*.env
+
+# Private keys and local credentials
+*.pem
+*.key
+*.p12
+*.pfx
+*.secrets
+secrets/
+credentials/
+
+# JavaScript
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.turbo/
+*.tsbuildinfo
+
+# Rust
+target/
+
+# Test and runtime data
+/tmp/
+.techatlas/
+/data/
+/storage/
+/artifacts/
+*.log
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+
+# Local-only project instructions and planning inputs
+AGENTS.md
+Extras.md
+Auth0_Setup.md
+VISION.md

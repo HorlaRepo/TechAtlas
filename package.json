@@ -1,0 +1,31 @@
+{
+  "name": "techatlas",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.13.1",
+  "scripts": {
+    "dev": "turbo run dev --filter=@techatlas/dashboard",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "pnpm --filter @techatlas/dashboard test:e2e",
+    "docker:up": "env -u WORKER_GEOIP_DATABASE_PATH -u WORKER_GEOIP_DATABASE_VERSION docker compose --env-file .env -f infrastructure/compose/docker-compose.dev.yml up -d",
+    "docker:down": "docker compose -f infrastructure/compose/docker-compose.dev.yml down",
+    "docker:logs": "docker compose -f infrastructure/compose/docker-compose.dev.yml logs -f",
+    "test:docker:e2e": "./scripts/test-local-e2e.sh",
+    "geoip:setup": "./scripts/setup-geoip.sh",
+    "performance:check": "node scripts/check-dashboard-budget.mjs",
+    "cargo:fmt": "cargo fmt --all --check",
+    "cargo:lint": "cargo clippy --workspace --all-targets -- -D warnings",
+    "cargo:test": "cargo test --workspace",
+    "cargo:build": "cargo build --workspace",
+    "api:openapi": "cargo run -p techatlas-api --bin generate_openapi > contracts/openapi/openapi.yaml",
+    "api:openapi:check": "cargo test -p techatlas-api openapi_contract_is_current",
+    "api:client:generate": "pnpm --filter @techatlas/api-client generate",
+    "api:client:check": "pnpm --filter @techatlas/api-client check:generated"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.5"
+  }
+}
