@@ -1,0 +1,87 @@
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+@import "tailwindcss";
+
+@source "../../../../packages/ui/src";
+
+@theme {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+
+  --text-ui: 0.875rem;
+  --text-ui--line-height: 1.25rem;
+  --text-label: 0.6875rem;
+  --text-label--line-height: 1rem;
+  --text-metric: 1.625rem;
+  --text-metric--line-height: 2rem;
+
+  --color-background: #0f1417;
+  --color-surface: #0f1417;
+  --color-surface-container-lowest: #0a0f12;
+  --color-surface-container-low: #171c1f;
+  --color-surface-container: #1b2023;
+  --color-surface-container-high: #262b2e;
+  --color-surface-container-highest: #303539;
+  --color-on-surface: #dfe3e7;
+  --color-on-surface-variant: #bbc9c6;
+  --color-outline: #869491;
+  --color-outline-variant: #3c4947;
+  --color-primary: #5bdacb;
+  --color-primary-fixed: #7af7e7;
+  --color-primary-fixed-dim: #5bdacb;
+  --color-primary-container: #2bb6a8;
+  --color-on-primary: #003732;
+  --color-secondary-fixed: #e9ddff;
+  --color-tertiary: #ffb59d;
+  --color-tertiary-fixed: #ffdbd0;
+  --color-tertiary-container: #ef8865;
+  --color-discovery: #8b5cf6;
+  --color-error: #ffb4ab;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-xl: 1rem;
+  --shadow-floating: 0 20px 40px rgb(0 0 0 / 0.1);
+}
+
+:root {
+  color-scheme: dark;
+  background: var(--color-background);
+  color: var(--color-on-surface);
+  font-family: var(--font-sans);
+}
+
+* {
+  border-color: color-mix(in srgb, var(--color-outline-variant) 65%, transparent);
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--color-background);
+  font-size: var(--text-ui);
+  line-height: var(--text-ui--line-height);
+  font-weight: 400;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+::selection {
+  background: var(--color-primary-container);
+  color: var(--color-on-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
