@@ -1,0 +1,15 @@
+import { createDomain, listDomains, updatePolicy } from "@techatlas/api-client";
+import { Button, Card, Input } from "@techatlas/ui";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FormEvent, useState } from "react";
+import { AdminConfirmDialog } from "./admin-confirm-dialog";
+
+export function AdminDomainsPage() {
+ const client=useQueryClient(); const [domain,setDomain]=useState(""); const [message,setMessage]=useState(""); const [confirmDomain,setConfirmDomain]=useState<string | null>(null);
+ const domains=useQuery({queryKey:["admin","domains"],queryFn:async()=>{const r=await listDomains();if(r.error||!r.data)throw Error("domains unavailable");return r.data;}});
+ const add=useMutation({mutationFn:async()=>{const r=await createDomain({body:{domain}});if(r.error||!r.data)throw Error("domain could not be created");return r.data;},onSuccess:()=>{setDomain("");setMessage("Domain created.");void client.invalidateQueries({queryKey:["admin","domains"]});}});
+ const policy=useMutation({mutationFn:async(canonical_domain:string)=>{const r=await updatePolicy({path:{canonical_domain},body:{is_enabled:true,priority:"medium",desired_interval_hours:168}});if(r.error)throw Error("policy could not be updated");},onSuccess:()=>{setConfirmDomain(null);setMessage("Weekly crawl policy enabled.");void client.invalidateQueries({queryKey:["admin","domains"]});}});
+ const submit=(event:FormEvent)=>{event.preventDefault();setMessage("");add.mutate();};
+ if(domains.isLoading)return <Card role="status">Loading domains…</Card>; if(domains.isError)return <Card role="status">Could not load protected domains.</Card>;
+ return <><div className="space-y-6"><header><p className="font-mono text-xs text-primary">ADMIN DOMAINS</p><h1 className="mt-2 font-sans text-3xl font-semibold">Corpus policies</h1></header><Card><form className="flex flex-col gap-3 sm:flex-row" onSubmit={submit}><Input aria-label="Domain" className="min-w-0 flex-1" value={domain} onChange={e=>setDomain(e.target.value)} placeholder="example.com" required/><Button className="shrink-0 whitespace-nowrap" type="submit" disabled={add.isPending}>Add domain</Button></form>{message?<p className="mt-3 text-sm text-primary" role="status">{message}</p>:null}{add.isError?<p className="mt-3 text-sm text-error" role="alert">{String(add.error.message)}</p>:null}</Card><Card><ul className="divide-y divide-outline-variant/30">{domains.data?.domains.map(item=><li key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><span className="font-mono text-sm">{item.canonical_domain}</span><Button size="compact" variant="secondary" disabled={policy.isPending} onClick={()=>setConfirmDomain(item.canonical_domain)}>Enable weekly policy</Button></li>)}</ul></Card></div>{confirmDomain?<AdminConfirmDialog title="Enable weekly crawl policy" description={`This permits scheduled weekly collection for ${confirmDomain}.`} confirmLabel="Enable policy" isPending={policy.isPending} onCancel={()=>setConfirmDomain(null)} onConfirm={()=>policy.mutate(confirmDomain)}/>:null}</>;
+}
