@@ -1,0 +1,21 @@
+[package]
+name = "techatlas-scheduler"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+axum.workspace = true
+secrecy.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+time.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+techatlas-common = { path = "../../crates/common" }
+techatlas-database = { path = "../../crates/database" }
+techatlas-models = { path = "../../crates/models" }
+techatlas-queue = { path = "../../crates/queue" }
+techatlas-telemetry = { path = "../../crates/telemetry" }
