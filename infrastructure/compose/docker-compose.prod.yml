@@ -78,7 +78,7 @@ services:
     logging: *json-logging
 
   meilisearch:
-    image: getmeili/meilisearch:v1.13.4
+    image: getmeili/meilisearch:v1.13.3
     restart: unless-stopped
     environment:
       MEILI_ENV: production

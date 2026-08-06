@@ -237,7 +237,7 @@ services:
       retries: 20
 
   meilisearch:
-    image: getmeili/meilisearch:v1.13
+    image: getmeili/meilisearch:v1.13.3
     environment:
       MEILI_ENV: development
       MEILI_NO_ANALYTICS: "true"
