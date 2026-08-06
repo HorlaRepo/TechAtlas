@@ -2,13 +2,15 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "@/app/app";
 
+const { logout } = vi.hoisted(() => ({ logout: vi.fn() }));
+
 vi.mock("@auth0/auth0-react", () => ({
   useAuth0: () => ({
     getAccessTokenSilently: vi.fn(async () => "test-access-token"),
     isAuthenticated: true,
     isLoading: false,
-    logout: vi.fn(),
-    user: { email: "operator@example.test" },
+    logout,
+    user: { email: "operator@example.test", name: "Operations Admin" },
   }),
 }));
 
@@ -42,6 +44,7 @@ vi.mock("@techatlas/api-client", () => ({
 
 describe("operations dashboard", () => {
   beforeEach(() => {
+    logout.mockReset();
     window.history.replaceState({}, "", "/admin/overview");
   });
 
@@ -68,5 +71,21 @@ describe("operations dashboard", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Existing enabled domain" }), { target: { value: "example.com" } });
     fireEvent.click(screen.getByRole("button", { name: "Request crawl" }));
     expect(await screen.findByText("example.com is eligible for scheduler processing.")).toBeInTheDocument();
+  });
+
+  it("keeps sign out in the account settings popover", async () => {
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "Operations Center" });
+
+    expect(screen.getByText("Operations Admin")).toBeInTheDocument();
+    expect(screen.getByText("operator@example.test")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Sign out" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Account settings" }));
+    expect(screen.getByRole("dialog", { name: "Account settings" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    expect(logout).toHaveBeenCalledWith({ logoutParams: { returnTo: window.location.origin } });
   });
 });

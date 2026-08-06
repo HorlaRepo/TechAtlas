@@ -18,7 +18,7 @@ import {
 import { useAuth0 } from "@auth0/auth0-react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { Button, IconButton, Input } from "@techatlas/ui";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { adminBreadcrumbForPath } from "./admin-breadcrumbs";
 import { QuickCrawlDialog } from "@/features/admin/quick-crawl-dialog";
 
@@ -93,7 +93,12 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-background text-on-surface">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-outline-variant/30 bg-surface px-4 py-6 lg:flex lg:flex-col">
-        <SidebarContent onQuickCrawl={handleQuickCrawl} userName={user?.name ?? user?.email ?? "Administrator"} onLogout={() => logout({ logoutParams: { returnTo: window.location.origin } })} />
+        <SidebarContent
+          onQuickCrawl={handleQuickCrawl}
+          userName={user?.name ?? user?.email ?? "Administrator"}
+          userEmail={user?.email ?? "Administrator account"}
+          onLogout={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+        />
       </aside>
 
       {isQuickCrawlOpen ? <QuickCrawlDialog onClose={closeQuickCrawl} /> : null}
@@ -113,7 +118,12 @@ export function AppShell({ children }: AppShellProps) {
               label="Close navigation"
               onClick={closeMobileNavigation}
             />
-            <SidebarContent onQuickCrawl={handleQuickCrawl} userName={user?.name ?? user?.email ?? "Administrator"} onLogout={() => logout({ logoutParams: { returnTo: window.location.origin } })} />
+            <SidebarContent
+              onQuickCrawl={handleQuickCrawl}
+              userName={user?.name ?? user?.email ?? "Administrator"}
+              userEmail={user?.email ?? "Administrator account"}
+              onLogout={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+            />
           </aside>
         </div>
       ) : null}
@@ -165,7 +175,17 @@ export function AppShell({ children }: AppShellProps) {
   );
 }
 
-function SidebarContent({ onLogout, onQuickCrawl, userName }: { onLogout: () => void; onQuickCrawl: () => void; userName: string }) {
+function SidebarContent({
+  onLogout,
+  onQuickCrawl,
+  userName,
+  userEmail,
+}: {
+  onLogout: () => void;
+  onQuickCrawl: () => void;
+  userName: string;
+  userEmail: string;
+}) {
   return (
     <>
       <div className="mb-8 flex items-center gap-3 px-2">
@@ -199,16 +219,95 @@ function SidebarContent({ onLogout, onQuickCrawl, userName }: { onLogout: () => 
         )}
       </nav>
 
-      <div className="mt-6 flex items-center gap-3 border-t border-outline-variant/30 px-2 pt-5">
-        <div className="flex size-9 items-center justify-center rounded-full bg-surface-container-high font-mono text-xs font-medium text-primary">
+      <SidebarAccount userName={userName} userEmail={userEmail} onLogout={onLogout} />
+    </>
+  );
+}
+
+function SidebarAccount({
+  onLogout,
+  userEmail,
+  userName,
+}: {
+  onLogout: () => void;
+  userEmail: string;
+  userName: string;
+}) {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const popoverId = useId();
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!isSettingsOpen) {
+      return undefined;
+    }
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsSettingsOpen(false);
+        requestAnimationFrame(() => settingsButtonRef.current?.focus());
+      }
+    };
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target;
+      if (
+        target instanceof Node
+        && !popoverRef.current?.contains(target)
+        && !settingsButtonRef.current?.contains(target)
+      ) {
+        setIsSettingsOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => {
+      document.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+    };
+  }, [isSettingsOpen]);
+
+  return (
+    <div className="mt-6 border-t border-outline-variant/30 pt-4">
+      <div className="relative flex items-center gap-3 px-2">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface-container-high font-mono text-xs font-medium text-primary">
           {userName.slice(0, 2).toUpperCase()}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="truncate font-mono text-xs font-medium text-on-surface">{userName}</p>
-          <p className="mt-0.5 font-mono text-[0.625rem] text-on-surface-variant">SYSTEM OPS</p>
+          <p className="mt-0.5 truncate font-mono text-[0.625rem] text-on-surface-variant">{userEmail}</p>
         </div>
+        <IconButton
+          ref={settingsButtonRef}
+          icon={<GearSix size={19} aria-hidden="true" />}
+          label="Account settings"
+          aria-controls={isSettingsOpen ? popoverId : undefined}
+          aria-expanded={isSettingsOpen}
+          aria-haspopup="dialog"
+          onClick={() => setIsSettingsOpen((open) => !open)}
+        />
+        {isSettingsOpen ? (
+          <div
+            ref={popoverRef}
+            id={popoverId}
+            role="dialog"
+            aria-label="Account settings"
+            className="absolute left-full top-1/2 z-10 ml-2 w-48 -translate-y-1/2 rounded-xl border border-outline-variant/40 bg-surface-container p-1 shadow-floating"
+          >
+            <Button
+              className="w-full justify-start text-error hover:bg-error/15 hover:text-error"
+              variant="ghost"
+              onClick={() => {
+                setIsSettingsOpen(false);
+                onLogout();
+              }}
+            >
+              Sign out
+            </Button>
+          </div>
+        ) : null}
       </div>
-      <Button className="mt-3 w-full" variant="ghost" onClick={onLogout}>Sign out</Button>
-    </>
+    </div>
   );
 }
