@@ -12,10 +12,8 @@ services:
     restart: unless-stopped
     environment:
       TECHATLAS_PUBLIC_HOST: ${TECHATLAS_PUBLIC_HOST:?set the public DNS name}
-      CADDY_EMAIL: ${CADDY_EMAIL:?set the ACME contact email}
     ports:
-      - "80:80"
-      - "443:443"
+      - "127.0.0.1:${CADDY_ORIGIN_PORT:-8081}:80"
     volumes:
       - ../caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

@@ -8,9 +8,16 @@ Compose stack.
 
 Install Docker Engine with the Compose plugin, copy the repository to `/opt/techatlas`, and create
 an access-controlled `/etc/techatlas/production.env` from `.env.production.example` (`chmod 600`).
-Set a DNS A/AAAA record for `TECHATLAS_PUBLIC_HOST` to the VM before startup, allow inbound TCP 80
-and 443 only, and keep PostgreSQL, Redis, Meilisearch, OTLP, Prometheus, Grafana, and Tempo off the
-public firewall. Caddy obtains and renews TLS certificates automatically.
+Create a Cloudflare Tunnel public hostname for `TECHATLAS_PUBLIC_HOST` and configure its dedicated
+`cloudflared` service to forward to `http://127.0.0.1:8081`. The production Caddy origin is bound
+to loopback only; Cloudflare terminates public TLS. Do not open inbound TCP 80 or 443 on the VM or
+in the Oracle security list. Keep PostgreSQL, Redis, Meilisearch, OTLP, Prometheus, Grafana, and
+Tempo off the public firewall.
+
+Create the tunnel and copy its credentials JSON to `/etc/cloudflared`. Render
+`infrastructure/cloudflared/techatlas.yml.example` with the tunnel UUID and public hostname, then
+install `infrastructure/systemd/cloudflared-techatlas.service`. Keep this service independent from
+any other application tunnel on the host. Enable it only after the application origin is healthy.
 
 Use unique, secret values for PostgreSQL, Meilisearch, Grafana, and S3 credentials. Configure
 Auth0 with callback, logout, web-origin, and CORS entries for `https://$TECHATLAS_PUBLIC_HOST`,

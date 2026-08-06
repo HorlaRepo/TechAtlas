@@ -1,0 +1,8 @@
+# Copy to /etc/cloudflared/techatlas.yml on the production VM. Keep the credentials JSON host-only.
+tunnel: REPLACE_WITH_TECHATLAS_TUNNEL_UUID
+credentials-file: /etc/cloudflared/REPLACE_WITH_TECHATLAS_TUNNEL_UUID.json
+
+ingress:
+  - hostname: REPLACE_WITH_TECHATLAS_PUBLIC_HOST
+    service: http://127.0.0.1:8081
+  - service: http_status:404

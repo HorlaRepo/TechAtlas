@@ -6,4 +6,5 @@ The current local development stack is documented in [compose/README.md](./compo
 The local monitoring and incident procedure is documented in the [monitoring runbook](../docs/runbooks/monitoring.md).
 The Oracle VM production procedure and S3-compatible recovery rehearsal are documented in the
 [deployment](../docs/runbooks/deployment.md) and [backup/restore](../docs/runbooks/backup-restore.md)
-runbooks.
+runbooks. The production edge uses the Cloudflare Tunnel templates in `cloudflared/` and `systemd/`;
+its credentials and rendered configuration remain host-only.

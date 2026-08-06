@@ -22,3 +22,4 @@ Use filenames such as `0001-short-title.md`.
 - [0008 Public analytics and adoption history](./0008-public-analytics-and-adoption-history.md)
 - [0009 Protected crawl command and admin shell boundary](./0009-protected-crawl-command-and-admin-shell-boundary.md)
 - [0010 DNS and TLS crawl observation boundary](./0010-dns-tls-crawl-observation-boundary.md)
+- [0011 Cloudflare Tunnel production ingress](./0011-cloudflare-tunnel-production-ingress.md)

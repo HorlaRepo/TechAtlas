@@ -30,7 +30,8 @@ flowchart TB
     oidc[OIDC provider]
 
     subgraph edge[Production public edge]
-        caddy[Caddy<br/>TLS termination and routing]
+        cloudflare[Cloudflare Tunnel<br/>public TLS and ingress]
+        caddy[Caddy<br/>loopback origin routing]
         dashboard[React dashboard<br/>public research and admin UI]
     end
 
@@ -55,7 +56,8 @@ flowchart TB
         grafana[Grafana]
     end
 
-    user -->|HTTPS| caddy
+    user -->|HTTPS| cloudflare
+    cloudflare -->|tunnel to loopback origin| caddy
     caddy -->|static SPA| dashboard
     caddy -->|/api/*| api
     dashboard -.->|generated OpenAPI client| api
@@ -95,7 +97,7 @@ flowchart TB
     classDef app fill:#ede9fe,stroke:#6d28d9,color:#1f1147;
     classDef state fill:#fef3c7,stroke:#b45309,color:#451a03;
     classDef ops fill:#e2e8f0,stroke:#475569,color:#0f172a;
-    class user,target,oidc,caddy,dashboard public;
+    class user,target,oidc,cloudflare,caddy,dashboard public;
     class api,scheduler,worker,cli app;
     class postgres,redis,artifacts,meili state;
     class prometheus,otel,tempo,grafana ops;
@@ -351,10 +353,10 @@ The browser suite runs route-level accessibility checks, visual-regression snaps
 
 ## Deployment
 
-The supported v1 production topology is a single host running the production Compose stack behind Caddy. Caddy terminates TLS for <https://techatlas.dpdns.org>; PostgreSQL, Redis, Meilisearch, telemetry, and Grafana remain non-public.
+The supported v1 production topology is a single host running the production Compose stack behind a Cloudflare Tunnel. Cloudflare terminates TLS and forwards to a loopback-only Caddy origin; PostgreSQL, Redis, Meilisearch, telemetry, and Grafana remain non-public.
 
 1. Copy .env.production.example to an access-controlled file such as /etc/techatlas/production.env and set unique secrets, OIDC values, crawler user-agent/contact data, GeoLite2 path/version, and backup credentials.
-2. Point TECHATLAS_PUBLIC_HOST to techatlas.dpdns.org, allow inbound TCP 80 and 443, and register the production dashboard URL with the identity provider.
+2. Create a Cloudflare Tunnel public hostname for TECHATLAS_PUBLIC_HOST, keep inbound TCP 80 and 443 closed, and register the production dashboard URL with the identity provider.
 3. Follow the [single-host deployment runbook](./docs/runbooks/deployment.md). The production stack runs its one-shot migration service before dependent application services start.
 4. Configure S3-compatible backups and rehearse recovery using the [backup/restore runbook](./docs/runbooks/backup-restore.md).
 

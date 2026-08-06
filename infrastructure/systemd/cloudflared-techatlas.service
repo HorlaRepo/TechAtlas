@@ -1,0 +1,19 @@
+[Unit]
+Description=Cloudflare Tunnel for TechAtlas
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/cloudflared --config /etc/cloudflared/techatlas.yml tunnel run
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/etc/cloudflared
+
+[Install]
+WantedBy=multi-user.target

@@ -13,8 +13,9 @@ provider.
 
 ## Decision
 
-- Production runs through a dedicated Docker Compose stack with release images, Caddy-managed TLS,
-  internal-only service networking, and explicit resource limits for the 2-vCPU/12-GB host.
+- Production runs through a dedicated Docker Compose stack with release images, a loopback-only
+  Caddy origin behind Cloudflare Tunnel (see ADR 0011), internal-only service networking, and
+  explicit resource limits for the 2-vCPU/12-GB host.
 - A one-shot CLI migration service completes before API, scheduler, and worker startup. Service
   processes never apply migrations themselves.
 - PostgreSQL and the raw-artifact volume are backed up daily to an S3-compatible private bucket.
@@ -27,9 +28,9 @@ provider.
 
 ## Consequences
 
-Deployments require DNS, ACME access, a private S3-compatible bucket, production secrets, and a
-documented restore rehearsal. Public traffic reaches only Caddy on ports 80 and 443; observability
-interfaces are bound to loopback for SSH-tunnel access.
+Deployments require a Cloudflare-managed hostname and tunnel, a private S3-compatible bucket,
+production secrets, and a documented restore rehearsal. Cloudflare reaches the loopback-only
+Caddy origin; observability interfaces are bound to loopback for SSH-tunnel access.
 
 ## Alternatives considered
 
