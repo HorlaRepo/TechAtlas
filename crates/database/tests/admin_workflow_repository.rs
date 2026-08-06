@@ -33,6 +33,7 @@ async fn quick_crawl_makes_an_enabled_domain_eligible_and_audits_the_request()
         ))
         .await?;
     let now = OffsetDateTime::now_utc();
+    let now = now.replace_nanosecond(now.nanosecond() / 1_000 * 1_000)?;
     let workflow = PostgresAdminWorkflowRepository::new(pool.clone());
 
     workflow
