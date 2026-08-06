@@ -23,37 +23,93 @@ Read the [canonical PRD](./TECHATLAS_PRD.md) for complete product scope and the 
 
 ## Architecture
 
-~~~text
-Domain sources, administrator input, and public refresh requests
-                              |
-                              v
-                         Scheduler
-                              |
-                              v
-                     Redis Streams queue
-                              |
-                              v
-                Safe crawl worker pool ----------> raw artifact storage
-                              |
-                              v
-            Parser + deterministic detector -----> PostgreSQL
-                              |                         |
-                              |                         v
-                              |              immutable history/projections
-                              v
-                  Meilisearch projection
-                              |
-                              v
-            Axum REST API <----> React public and admin dashboard
-~~~
+```mermaid
+flowchart TB
+    user[Public researchers<br/>and administrators]
+    target[Administrator-managed<br/>public websites]
+    oidc[OIDC provider]
 
-PostgreSQL is authoritative. Redis Streams, Meilisearch, dashboard views, and observability data are replaceable projections or consumers.
+    subgraph edge[Production public edge]
+        caddy[Caddy<br/>TLS termination and routing]
+        dashboard[React dashboard<br/>public research and admin UI]
+    end
+
+    subgraph applications[Deployable applications]
+        api[Axum API<br/>public reads, admin commands, OpenAPI]
+        scheduler[Scheduler<br/>eligibility, priority, retries, publication]
+        worker[Worker pool<br/>safe collection, parse and detect,<br/>reprocessing, indexing]
+        cli[CLI<br/>explicit import, maintenance, and rebuild commands]
+    end
+
+    subgraph state[Authoritative state and infrastructure]
+        postgres[(PostgreSQL<br/>domains and policies<br/>outboxes, snapshots, evidence, history, audits)]
+        redis[(Redis Streams<br/>crawl jobs and politeness coordination)]
+        artifacts[(Raw artifact storage<br/>sanitized, zstd-compressed, content-addressed)]
+        meili[(Meilisearch<br/>rebuildable domain-search index)]
+    end
+
+    subgraph observability[Internal observability]
+        prometheus[Prometheus]
+        otel[OpenTelemetry Collector]
+        tempo[Tempo]
+        grafana[Grafana]
+    end
+
+    user -->|HTTPS| caddy
+    caddy -->|static SPA| dashboard
+    caddy -->|/api/*| api
+    dashboard -.->|generated OpenAPI client| api
+    dashboard -.->|administrator sign-in| oidc
+    api -.->|JWT and JWKS validation| oidc
+
+    api -->|profiles, analytics, refreshes,<br/>admin mutations and audits| postgres
+    api -->|domain search and facets| meili
+    api -->|queue and worker status| redis
+    cli -->|imports, migrations, retention,<br/>and projection rebuilds| postgres
+    cli -->|full index rebuild| meili
+
+    postgres -->|due policies, refresh intent,<br/>and pending crawl outbox| scheduler
+    scheduler -->|atomic reservation, retry state,<br/>crawl outbox, daily adoption| postgres
+    scheduler -->|versioned CrawlJobV1| redis
+    redis -->|at-least-once consumer group| worker
+    worker -->|acknowledge and reclaim stale jobs| redis
+
+    worker -->|robots-aware, bounded HTTP;<br/>SSRF-safe DNS and redirects| target
+    worker -->|sanitized eligible HTML| artifacts
+    artifacts -->|historical artifact reads| worker
+    worker -->|immutable snapshots, deterministic detections,<br/>current/history projections, search-index outbox| postgres
+    postgres -->|reprocessing and search-index outbox work| worker
+    worker -->|idempotent index upserts| meili
+
+    api -.->|/metrics| prometheus
+    scheduler -.->|/metrics| prometheus
+    worker -.->|/metrics| prometheus
+    api -.->|OTLP traces| otel
+    scheduler -.->|OTLP traces| otel
+    worker -.->|OTLP traces| otel
+    otel --> tempo
+    prometheus --> grafana
+    tempo --> grafana
+
+    classDef public fill:#e7f8f5,stroke:#0f766e,color:#0f172a;
+    classDef app fill:#ede9fe,stroke:#6d28d9,color:#1f1147;
+    classDef state fill:#fef3c7,stroke:#b45309,color:#451a03;
+    classDef ops fill:#e2e8f0,stroke:#475569,color:#0f172a;
+    class user,target,oidc,caddy,dashboard public;
+    class api,scheduler,worker,cli app;
+    class postgres,redis,artifacts,meili state;
+    class prometheus,otel,tempo,grafana ops;
+```
+
+The normal crawl path is deliberately durable: the scheduler reads eligibility and refresh intent from PostgreSQL, atomically records a crawl attempt plus an outbox entry, then publishes a versioned job to Redis Streams. Workers are idempotent consumers; they acknowledge only after recording a bounded outcome, while stale stream deliveries can be reclaimed. A public refresh only advances scheduler eligibility—it never bypasses this path.
+
+PostgreSQL is the system of record for policy, immutable collection history, detections, evidence, audit events, and projection/outbox state. Raw artifacts are stored separately after redaction. Meilisearch serves only rebuildable domain search and facets; profiles, comparisons, and analytics read PostgreSQL projections. Metrics and traces are operational consumers, not business-data stores.
 
 | Component | Role |
 | --- | --- |
-| apps/api | Axum REST API, OpenAPI generation, public reads, and protected admin commands. |
-| apps/scheduler | Crawl eligibility, priority, retry orchestration, outbox publication, and daily adoption snapshots. |
-| apps/worker | Safe HTTP acquisition, DNS/TLS capture, parsing, detection, artifact persistence, and indexing work. |
+| apps/api | Axum REST API, OpenAPI generation, Meilisearch-backed domain search, PostgreSQL-backed public reads, and protected admin commands. |
+| apps/scheduler | Crawl eligibility, priority, scheduler-mediated refreshes, retry orchestration, durable outbox publication, and daily adoption snapshots. |
+| apps/worker | Safe HTTP acquisition, DNS/TLS capture, parsing, deterministic detection, artifact persistence, historical reprocessing, and asynchronous indexing. |
 | apps/cli | Explicit imports, migrations, reindexing, adoption backfills, and maintenance operations. |
 | apps/dashboard | React public research interface and protected administrative UI. |
 | crates | Typed domain models plus database, crawler, parser, detector, queue, storage, search, and telemetry boundaries. |
