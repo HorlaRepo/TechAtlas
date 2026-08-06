@@ -16,6 +16,8 @@ async fn records_one_refresh_per_cooldown_and_only_advances_scheduler_eligibilit
     let disabled = insert_domain_with_policy(&pool, "disabled-refresh.example", false).await?;
     let repository = PostgresPublicRefreshRepository::new(pool.clone());
     let requested_at = OffsetDateTime::now_utc();
+    let requested_at =
+        requested_at.replace_nanosecond(requested_at.nanosecond() / 1_000 * 1_000)?;
     let cooldown = Duration::hours(24);
 
     let request = repository
