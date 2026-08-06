@@ -1,0 +1,159 @@
+name: Deploy production
+
+on:
+  workflow_run:
+    workflows: [Quality]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit, tag, or branch to deploy after an operator review.
+        required: true
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  build-images:
+    name: Build ARM64 release images
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    environment: production
+    outputs:
+      revision: ${{ steps.revision.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.ref }}
+
+      - name: Record immutable revision
+        id: revision
+        run: echo "value=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infrastructure/docker/backend.Dockerfile
+          load: true
+          platforms: linux/arm64
+          tags: techatlas-backend:${{ steps.revision.outputs.value }}
+          cache-from: type=gha,scope=techatlas-backend-arm64
+          cache-to: type=gha,mode=max,scope=techatlas-backend-arm64
+
+      - name: Build dashboard image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infrastructure/docker/dashboard.Dockerfile
+          load: true
+          platforms: linux/arm64
+          tags: techatlas-dashboard:${{ steps.revision.outputs.value }}
+          build-args: |
+            VITE_AUTH0_DOMAIN=${{ vars.VITE_AUTH0_DOMAIN }}
+            VITE_AUTH0_CLIENT_ID=${{ vars.VITE_AUTH0_CLIENT_ID }}
+            VITE_AUTH0_AUDIENCE=${{ vars.VITE_AUTH0_AUDIENCE }}
+          cache-from: type=gha,scope=techatlas-dashboard-arm64
+          cache-to: type=gha,mode=max,scope=techatlas-dashboard-arm64
+
+      - name: Build backup image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infrastructure/docker/backup.Dockerfile
+          load: true
+          platforms: linux/arm64
+          tags: techatlas-backup:${{ steps.revision.outputs.value }}
+          cache-from: type=gha,scope=techatlas-backup-arm64
+          cache-to: type=gha,mode=max,scope=techatlas-backup-arm64
+
+      - name: Verify image architecture and package release archives
+        env:
+          REVISION: ${{ steps.revision.outputs.value }}
+        run: |
+          set -euo pipefail
+          release_directory="$RUNNER_TEMP/techatlas-release"
+          mkdir --parents "$release_directory"
+          for image in backend dashboard backup; do
+            docker image inspect "techatlas-${image}:${REVISION}" --format '{{.Architecture}}' | grep --quiet '^arm64$'
+            docker save "techatlas-${image}:${REVISION}" | gzip -1 > "$release_directory/${image}.tar.gz"
+          done
+          cp infrastructure/scripts/deploy-release.sh "$release_directory/deploy-release.sh"
+          chmod 0700 "$release_directory/deploy-release.sh"
+
+      - name: Upload release archives
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-release-${{ steps.revision.outputs.value }}
+          path: ${{ runner.temp }}/techatlas-release
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  deploy:
+    name: Deploy to Oracle VM
+    needs: build-images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: Download release archives
+        uses: actions/download-artifact@v4
+        with:
+          name: production-release-${{ needs.build-images.outputs.revision }}
+          path: ${{ runner.temp }}/techatlas-release
+
+      - name: Configure verified SSH access
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.PRODUCTION_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          ssh_directory="$RUNNER_TEMP/ssh"
+          mkdir --mode=700 "$ssh_directory"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$ssh_directory/id_ed25519"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$ssh_directory/known_hosts"
+          chmod 600 "$ssh_directory/id_ed25519" "$ssh_directory/known_hosts"
+
+      - name: Transfer and apply release
+        env:
+          REVISION: ${{ needs.build-images.outputs.revision }}
+          SSH_HOST: ${{ secrets.PRODUCTION_SSH_HOST }}
+          SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT }}
+          SSH_USER: ${{ secrets.PRODUCTION_SSH_USER }}
+        run: |
+          set -euo pipefail
+          ssh_directory="$RUNNER_TEMP/ssh"
+          release_directory="/tmp/techatlas-release-${REVISION}"
+          ssh_options=(
+            -i "$ssh_directory/id_ed25519"
+            -o "UserKnownHostsFile=$ssh_directory/known_hosts"
+            -o StrictHostKeyChecking=yes
+            -p "$SSH_PORT"
+          )
+          ssh "${ssh_options[@]}" "${SSH_USER}@${SSH_HOST}" "install --directory --mode=0700 '${release_directory}'"
+          scp -P "$SSH_PORT" -i "$ssh_directory/id_ed25519" \
+            -o "UserKnownHostsFile=$ssh_directory/known_hosts" \
+            -o StrictHostKeyChecking=yes \
+            "$RUNNER_TEMP/techatlas-release/"* "${SSH_USER}@${SSH_HOST}:${release_directory}/"
+          ssh "${ssh_options[@]}" "${SSH_USER}@${SSH_HOST}" "sudo bash '${release_directory}/deploy-release.sh' '${REVISION}' '${release_directory}'"
+
+      - name: Verify the public release
+        env:
+          PRODUCTION_PUBLIC_URL: ${{ vars.PRODUCTION_PUBLIC_URL }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 5 \
+            --connect-timeout 10 "$PRODUCTION_PUBLIC_URL/" >/dev/null

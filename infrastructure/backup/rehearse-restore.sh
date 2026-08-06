@@ -14,8 +14,14 @@ if [[ ! -r "${environment_file}" ]]; then
     exit 66
 fi
 
+release_environment_file="${TECHATLAS_RELEASE_ENV_FILE:-/etc/techatlas/release.env}"
+if [[ ! -r "${release_environment_file}" ]]; then
+    echo "unable to read CI-managed release environment file: ${release_environment_file}" >&2
+    exit 66
+fi
+
 project="techatlas-restore-${backup_id,,}"
-compose=(docker compose --env-file "${environment_file}" --project-name "${project}" -f "${compose_file}" --profile maintenance)
+compose=(docker compose --env-file "${environment_file}" --env-file "${release_environment_file}" --project-name "${project}" -f "${compose_file}" --profile maintenance)
 cleanup() {
     "${compose[@]}" down --volumes --remove-orphans
 }

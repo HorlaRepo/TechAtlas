@@ -23,3 +23,4 @@ Use filenames such as `0001-short-title.md`.
 - [0009 Protected crawl command and admin shell boundary](./0009-protected-crawl-command-and-admin-shell-boundary.md)
 - [0010 DNS and TLS crawl observation boundary](./0010-dns-tls-crawl-observation-boundary.md)
 - [0011 Cloudflare Tunnel production ingress](./0011-cloudflare-tunnel-production-ingress.md)
+- [0012 ARM64 image artifact deployments](./0012-arm64-image-artifact-deployments.md)

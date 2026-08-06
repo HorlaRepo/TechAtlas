@@ -7,5 +7,5 @@ After=docker.service
 Type=oneshot
 WorkingDirectory=/opt/techatlas
 EnvironmentFile=/etc/techatlas/production.env
-ExecStart=/usr/bin/docker compose --env-file /etc/techatlas/production.env -f infrastructure/compose/docker-compose.prod.yml --profile maintenance run --rm backup
-ExecStart=/usr/bin/docker compose --env-file /etc/techatlas/production.env -f infrastructure/compose/docker-compose.prod.yml --profile maintenance run --rm artifact-pruner
+ExecStart=/usr/bin/docker compose --env-file /etc/techatlas/production.env --env-file /etc/techatlas/release.env -f infrastructure/compose/docker-compose.prod.yml --profile maintenance run --rm backup
+ExecStart=/usr/bin/docker compose --env-file /etc/techatlas/production.env --env-file /etc/techatlas/release.env -f infrastructure/compose/docker-compose.prod.yml --profile maintenance run --rm artifact-pruner

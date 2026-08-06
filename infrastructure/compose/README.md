@@ -25,7 +25,9 @@ opening an `/admin/*` route locally.
 
 For the Oracle VM deployment, use the separate release stack at
 `docker-compose.prod.yml` and the [deployment runbook](../../docs/runbooks/deployment.md). It has
-no source bind mounts or public datastore ports.
+no source bind mounts or public datastore ports. Production images are built as ARM64 release
+archives by GitHub Actions and pinned through `/etc/techatlas/release.env`; the VM does not build
+or pull application images during deployment.
 
 The API exposes `GET /healthz` for process liveness and `GET /readyz` for PostgreSQL, Redis, and Meilisearch readiness. The latter returns HTTP 503 when any dependency is unavailable.
 

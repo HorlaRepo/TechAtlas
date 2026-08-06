@@ -1,7 +1,6 @@
 ARG RUST_VERSION=1.97.1
 FROM rust:${RUST_VERSION}-slim AS builder
 
-ARG BINARY
 WORKDIR /workspace
 
 RUN apt-get update \
@@ -13,8 +12,15 @@ COPY apps ./apps
 COPY crates ./crates
 COPY database ./database
 
-RUN cargo build --locked --release -p "${BINARY}" \
-    && install -D "target/release/${BINARY}" /out/techatlas
+RUN cargo build --locked --release \
+        -p techatlas-api \
+        -p techatlas-cli \
+        -p techatlas-scheduler \
+        -p techatlas-worker \
+    && install -D target/release/techatlas-api /out/usr/local/bin/techatlas-api \
+    && install -D target/release/techatlas-cli /out/usr/local/bin/techatlas-cli \
+    && install -D target/release/techatlas-scheduler /out/usr/local/bin/techatlas-scheduler \
+    && install -D target/release/techatlas-worker /out/usr/local/bin/techatlas-worker
 
 FROM debian:bookworm-slim AS runtime
 
@@ -23,7 +29,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --system --uid 10001 --create-home techatlas
 
-COPY --from=builder /out/techatlas /usr/local/bin/techatlas
+COPY --from=builder /out/ /
+COPY --chmod=0555 infrastructure/docker/backend-entrypoint.sh /usr/local/bin/techatlas-entrypoint
 
 USER techatlas
-ENTRYPOINT ["/usr/local/bin/techatlas"]
+ENTRYPOINT ["/usr/local/bin/techatlas-entrypoint"]

@@ -34,13 +34,7 @@ services:
     logging: *json-logging
 
   dashboard:
-    build:
-      context: ../..
-      dockerfile: infrastructure/docker/dashboard.Dockerfile
-      args:
-        VITE_AUTH0_DOMAIN: ${VITE_AUTH0_DOMAIN:?set VITE_AUTH0_DOMAIN}
-        VITE_AUTH0_CLIENT_ID: ${VITE_AUTH0_CLIENT_ID:?set VITE_AUTH0_CLIENT_ID}
-        VITE_AUTH0_AUDIENCE: ${VITE_AUTH0_AUDIENCE:?set VITE_AUTH0_AUDIENCE}
+    image: ${DASHBOARD_IMAGE:?set DASHBOARD_IMAGE in the CI-managed release environment}
     restart: unless-stopped
     deploy:
       resources:
@@ -104,11 +98,8 @@ services:
     logging: *json-logging
 
   migrate:
-    build:
-      context: ../..
-      dockerfile: infrastructure/docker/backend.Dockerfile
-      args: { BINARY: techatlas-cli }
-    command: ["migrate-database"]
+    image: ${BACKEND_IMAGE:?set BACKEND_IMAGE in the CI-managed release environment}
+    command: ["cli", "migrate-database"]
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:?set POSTGRES_USER}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB}
       CLI_DATABASE_CONNECT_TIMEOUT_MS: "10000"
@@ -130,10 +121,8 @@ services:
     logging: *json-logging
 
   api:
-    build:
-      context: ../..
-      dockerfile: infrastructure/docker/backend.Dockerfile
-      args: { BINARY: techatlas-api }
+    image: ${BACKEND_IMAGE:?set BACKEND_IMAGE in the CI-managed release environment}
+    command: ["api"]
     restart: unless-stopped
     environment:
       API_BIND_ADDRESS: 0.0.0.0:3000
@@ -171,10 +160,8 @@ services:
     logging: *json-logging
 
   scheduler:
-    build:
-      context: ../..
-      dockerfile: infrastructure/docker/backend.Dockerfile
-      args: { BINARY: techatlas-scheduler }
+    image: ${BACKEND_IMAGE:?set BACKEND_IMAGE in the CI-managed release environment}
+    command: ["scheduler"]
     restart: unless-stopped
     environment:
       SCHEDULER_BIND_ADDRESS: 0.0.0.0:3001
@@ -200,10 +187,8 @@ services:
     logging: *json-logging
 
   worker:
-    build:
-      context: ../..
-      dockerfile: infrastructure/docker/backend.Dockerfile
-      args: { BINARY: techatlas-worker }
+    image: ${BACKEND_IMAGE:?set BACKEND_IMAGE in the CI-managed release environment}
+    command: ["worker"]
     restart: unless-stopped
     environment:
       WORKER_BIND_ADDRESS: 0.0.0.0:3002
@@ -214,7 +199,7 @@ services:
       WORKER_CONSUMER_NAME: ${WORKER_CONSUMER_NAME:-worker-production-1}
       WORKER_REGION: ${WORKER_REGION:-production}
       WORKER_HEARTBEAT_INTERVAL_MS: ${WORKER_HEARTBEAT_INTERVAL_MS:-15000}
-      WORKER_MAX_CONCURRENCY: ${WORKER_MAX_CONCURRENCY:-2}
+      WORKER_MAX_CONCURRENCY: ${WORKER_MAX_CONCURRENCY:-1}
       WORKER_ARTIFACT_ROOT: /var/lib/techatlas/artifacts
       WORKER_ARTIFACT_RETENTION_DAYS: ${WORKER_ARTIFACT_RETENTION_DAYS:-30}
       WORKER_GEOIP_DATABASE_PATH: /geoip/GeoLite2-Country.mmdb
@@ -313,10 +298,8 @@ services:
 
   maintenance-cli:
     profiles: ["maintenance"]
-    build:
-      context: ../..
-      dockerfile: infrastructure/docker/backend.Dockerfile
-      args: { BINARY: techatlas-cli }
+    image: ${BACKEND_IMAGE:?set BACKEND_IMAGE in the CI-managed release environment}
+    command: ["cli"]
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:?set POSTGRES_USER}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB}
       MEILISEARCH_URL: http://meilisearch:7700
@@ -334,9 +317,7 @@ services:
 
   backup:
     profiles: ["maintenance"]
-    build:
-      context: ../..
-      dockerfile: infrastructure/docker/backup.Dockerfile
+    image: ${BACKUP_IMAGE:?set BACKUP_IMAGE in the CI-managed release environment}
     command: ["/backup/backup.sh"]
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:?set POSTGRES_USER}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB}
@@ -359,11 +340,8 @@ services:
 
   artifact-pruner:
     profiles: ["maintenance"]
-    build:
-      context: ../..
-      dockerfile: infrastructure/docker/backend.Dockerfile
-      args: { BINARY: techatlas-cli }
-    command: ["prune-expired-artifacts"]
+    image: ${BACKEND_IMAGE:?set BACKEND_IMAGE in the CI-managed release environment}
+    command: ["cli", "prune-expired-artifacts"]
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:?set POSTGRES_USER}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB}
       WORKER_ARTIFACT_ROOT: /var/lib/techatlas/artifacts
@@ -377,9 +355,7 @@ services:
 
   restore:
     profiles: ["maintenance"]
-    build:
-      context: ../..
-      dockerfile: infrastructure/docker/backup.Dockerfile
+    image: ${BACKUP_IMAGE:?set BACKUP_IMAGE in the CI-managed release environment}
     command: ["/backup/restore.sh"]
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:?set POSTGRES_USER}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB}

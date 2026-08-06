@@ -357,7 +357,7 @@ The supported v1 production topology is a single host running the production Com
 
 1. Copy .env.production.example to an access-controlled file such as /etc/techatlas/production.env and set unique secrets, OIDC values, crawler user-agent/contact data, GeoLite2 path/version, and backup credentials.
 2. Create a Cloudflare Tunnel public hostname for TECHATLAS_PUBLIC_HOST, keep inbound TCP 80 and 443 closed, and register the production dashboard URL with the identity provider.
-3. Follow the [single-host deployment runbook](./docs/runbooks/deployment.md). The production stack runs its one-shot migration service before dependent application services start.
+3. Push reviewed changes to `main` and follow the [single-host deployment runbook](./docs/runbooks/deployment.md). GitHub Actions builds ARM64 release images, applies the one-shot migration before dependent services, and deploys through the VM's verified SSH connection.
 4. Configure S3-compatible backups and rehearse recovery using the [backup/restore runbook](./docs/runbooks/backup-restore.md).
 
 Do not deploy the source-mounted development Compose file to production. Production migrations are forward-only; treat rollback requiring data reversal as a restore/rehearsal operation.
