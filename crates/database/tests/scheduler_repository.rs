@@ -14,7 +14,7 @@ use uuid::Uuid;
 async fn reserves_only_due_active_domains_in_priority_order_and_writes_outbox_records()
 -> Result<(), Box<dyn std::error::Error>> {
     let (_container, pool) = database().await?;
-    let now = OffsetDateTime::now_utc();
+    let now = postgres_timestamp(OffsetDateTime::now_utc())?;
     let high = insert_domain_with_policy(
         &pool,
         "high.example",
@@ -85,7 +85,7 @@ async fn reserves_only_due_active_domains_in_priority_order_and_writes_outbox_re
 async fn schedules_bounded_retry_then_records_terminal_failure()
 -> Result<(), Box<dyn std::error::Error>> {
     let (_container, pool) = database().await?;
-    let now = OffsetDateTime::now_utc();
+    let now = postgres_timestamp(OffsetDateTime::now_utc())?;
     let domain = insert_domain_with_policy(
         &pool,
         "retry.example",
@@ -163,7 +163,7 @@ async fn schedules_bounded_retry_then_records_terminal_failure()
 async fn caps_unpublished_outbox_records_with_visible_terminal_failure()
 -> Result<(), Box<dyn std::error::Error>> {
     let (_container, pool) = database().await?;
-    let now = OffsetDateTime::now_utc();
+    let now = postgres_timestamp(OffsetDateTime::now_utc())?;
     insert_domain_with_policy(&pool, "outbox.example", "medium", true, None, now).await?;
     let repository = PostgresCrawlScheduleRepository::new(pool.clone());
     let job = repository.reserve_due(now, 1).await?.remove(0);
@@ -240,6 +240,12 @@ fn postgres_interval(
         .map_err(|_| std::io::Error::other("interval must be positive"))?;
     sqlx::postgres::types::PgInterval::try_from(duration)
         .map_err(|_| std::io::Error::other("interval is too large"))
+}
+
+fn postgres_timestamp(
+    timestamp: OffsetDateTime,
+) -> Result<OffsetDateTime, time::error::ComponentRange> {
+    timestamp.replace_nanosecond(timestamp.nanosecond() / 1_000 * 1_000)
 }
 
 async fn query_as_outbox_state(
