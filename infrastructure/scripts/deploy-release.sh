@@ -139,5 +139,15 @@ curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 2 \
 systemctl enable --now "${tunnel_service}"
 systemctl is-active --quiet "${tunnel_service}"
 
+install --owner=root --group=root --mode=0644 \
+    "${repository}/infrastructure/systemd/techatlas-backup.service" \
+    /etc/systemd/system/techatlas-backup.service
+install --owner=root --group=root --mode=0644 \
+    "${repository}/infrastructure/systemd/techatlas-backup.timer" \
+    /etc/systemd/system/techatlas-backup.timer
+systemctl daemon-reload
+systemctl enable --now techatlas-backup.timer
+systemctl is-active --quiet techatlas-backup.timer
+
 rm --recursive --force -- "${release_directory}"
 echo "deployed TechAtlas release ${release_sha}"

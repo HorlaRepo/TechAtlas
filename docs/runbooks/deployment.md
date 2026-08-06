@@ -65,16 +65,13 @@ or restoration.
 
 ## Daily maintenance timer
 
-Install `infrastructure/systemd/techatlas-backup.service` and
-`infrastructure/systemd/techatlas-backup.timer` as root after the first successful CI deployment
-(which creates `/etc/techatlas/release.env`), then run:
+The first successful CI deployment installs and enables the tracked backup service and timer after
+it has generated `/etc/techatlas/release.env`. Run the initial backup explicitly to verify S3
+credentials and create a recoverable backup:
 
 ```bash
-systemctl daemon-reload
-systemctl enable --now techatlas-backup.timer
 systemctl start techatlas-backup.service
 ```
 
-The first command verifies S3 credentials and creates a recoverable backup. It must succeed before
-the artifact-pruner runs. Monitor timer failures through `systemctl status techatlas-backup.timer`
-and `journalctl -u techatlas-backup.service`.
+It must succeed before artifact pruning runs. Monitor timer failures through
+`systemctl status techatlas-backup.timer` and `journalctl -u techatlas-backup.service`.
