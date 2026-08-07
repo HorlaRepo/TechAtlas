@@ -27,7 +27,7 @@ export function metricsFor(overview: OperationsOverviewResponse): OperationsMetr
   return [
     { id: "domains", label: "TOTAL DOMAINS", value: formatCount(overview.domain_count), trend: "Live", tone: "success", icon: "domains" },
     { id: "crawls", label: "SUCCESSFUL CRAWLS", value: formatCount(overview.successful_crawl_count), trend: "Live", tone: "success", icon: "crawls" },
-    { id: "technologies", label: "TECH DETECTED", value: formatCount(overview.technology_count), trend: formatCount(overview.current_detection_count), tone: "neutral", icon: "technologies" },
+    { id: "technologies", label: "TECH DETECTED", value: formatCount(overview.current_detection_count), trend: "Live", tone: "neutral", icon: "technologies" },
     { id: "throughput", label: "24H CRAWLS", value: formatCount(throughputTotal), trend: "Live", tone: "success", icon: "throughput" },
     { id: "queue", label: "QUEUE SIZE", value: formatCount(queueSize), trend: "Live", tone: "warning", icon: "queue" },
     { id: "health", label: "WORKER HEALTH", value: `${healthyWorkers}/${overview.workers.length}`, trend: overview.system_status, tone: overview.system_status === "online" ? "success" : "warning", icon: "health" },

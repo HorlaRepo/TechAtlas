@@ -57,6 +57,8 @@ describe("operations dashboard", () => {
     expect(screen.getAllByText("2.4M").length).toBeGreaterThan(0);
     expect(screen.getByText("SUCCESSFUL CRAWLS")).toBeInTheDocument();
     expect(screen.getByText("TECH DETECTED")).toBeInTheDocument();
+    expect(screen.getAllByText("8.1M").length).toBeGreaterThan(0);
+    expect(screen.queryByText("452")).not.toBeInTheDocument();
   });
 
   it("focuses global search from the keyboard shortcut and requests a quick crawl", async () => {

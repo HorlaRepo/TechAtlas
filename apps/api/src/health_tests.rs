@@ -675,6 +675,8 @@ async fn public_domain_profile_returns_typed_current_evidence_without_admin_auth
         .expect("response body should read");
     let body = String::from_utf8(body.to_vec()).expect("response should be UTF-8");
     assert!(body.contains(r#""canonical_domain":"profile.test""#));
+    assert!(body.contains(r#""first_indexed_at":"1970-01-01T00:00:00Z""#));
+    assert!(!body.contains(r#""first_indexed_at":["#));
     assert!(body.contains(r#""confidence":95"#));
     assert!(
         body.contains(r#""evidence":[{"source":"header","key":"x-powered-by","value":"React"}]"#)
