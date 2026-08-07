@@ -17,9 +17,10 @@ use std::sync::{
 };
 use techatlas_common::{DependencyProbe, DependencyStatus};
 use techatlas_models::{
-    AdminActivityKind, AdminCrawlAttempt, AdminOperationError, AdminOperationsActivity,
-    AdminOperationsOverview, AdminOperationsRead, AdminQueueRead, AdminQueueSnapshot,
-    AdminSchedulerOperations, AdminThroughputPoint, CanonicalDomain, Domain, DomainId,
+    AdminActivityKind, AdminCrawlAttempt, AdminImportBatch, AdminImportBatchRecrawl,
+    AdminImportOperations, AdminOperationError, AdminOperationsActivity, AdminOperationsOverview,
+    AdminOperationsRead, AdminQueueRead, AdminQueueSnapshot, AdminSchedulerOperations,
+    AdminThroughputPoint, CanonicalDomain, CsvDomainImport, CsvImportResult, Domain, DomainId,
     DomainRepository, DomainRepositoryError, DomainService, NewDomain,
 };
 use techatlas_telemetry::TelemetryMetrics;
@@ -88,6 +89,33 @@ struct InMemoryDomainState {
 
 struct RecordingScheduler {
     requested: Mutex<Vec<(String, String)>>,
+    batch_requests: Mutex<Vec<(String, String)>>,
+}
+
+struct StaticImports;
+
+#[async_trait]
+impl AdminImportOperations for StaticImports {
+    async fn import_csv(
+        &self,
+        _: &str,
+        _: &str,
+        _: CsvDomainImport,
+    ) -> Result<CsvImportResult, AdminOperationError> {
+        Err(AdminOperationError::Unavailable)
+    }
+
+    async fn completed_import_batches(
+        &self,
+        _: usize,
+    ) -> Result<Vec<AdminImportBatch>, AdminOperationError> {
+        Ok(vec![AdminImportBatch {
+            import_id: "00000000-0000-0000-0000-000000000123".to_owned(),
+            source_name: "top domains".to_owned(),
+            completed_at: OffsetDateTime::UNIX_EPOCH,
+            domain_count: 500,
+        }])
+    }
 }
 
 #[async_trait]
@@ -127,6 +155,25 @@ impl AdminSchedulerOperations for RecordingScheduler {
         _: OffsetDateTime,
     ) -> Result<u64, AdminOperationError> {
         Err(AdminOperationError::Unavailable)
+    }
+
+    async fn schedule_import_batch_recrawl(
+        &self,
+        import_id: &str,
+        actor_subject: &str,
+        _: OffsetDateTime,
+    ) -> Result<AdminImportBatchRecrawl, AdminOperationError> {
+        self.batch_requests
+            .lock()
+            .expect("test lock should not be poisoned")
+            .push((import_id.to_owned(), actor_subject.to_owned()));
+        Ok(AdminImportBatchRecrawl {
+            import_id: import_id.to_owned(),
+            source_name: "top domains".to_owned(),
+            requested_domain_count: 500,
+            scheduled_domain_count: 490,
+            skipped_domain_count: 10,
+        })
     }
 }
 
@@ -226,12 +273,28 @@ impl DomainRepository for InMemoryDomainRepository {
 }
 
 fn app(_requests_per_minute: u32) -> (Router, Arc<InMemoryDomainState>) {
-    app_with_scheduler(_requests_per_minute, Arc::new(UnavailableAdminOperations))
+    app_with_components(
+        _requests_per_minute,
+        Arc::new(UnavailableAdminOperations),
+        Arc::new(UnavailableAdminOperations),
+    )
 }
 
 fn app_with_scheduler(
     _requests_per_minute: u32,
     admin_scheduler: Arc<dyn AdminSchedulerOperations>,
+) -> (Router, Arc<InMemoryDomainState>) {
+    app_with_components(
+        _requests_per_minute,
+        admin_scheduler,
+        Arc::new(UnavailableAdminOperations),
+    )
+}
+
+fn app_with_components(
+    _requests_per_minute: u32,
+    admin_scheduler: Arc<dyn AdminSchedulerOperations>,
+    admin_imports: Arc<dyn AdminImportOperations>,
 ) -> (Router, Arc<InMemoryDomainState>) {
     let repository = Arc::new(InMemoryDomainState::new());
     let state = AppState {
@@ -245,7 +308,7 @@ fn app_with_scheduler(
             },
         )),
         admin_auth: Arc::new(TestAdminAuthorizer),
-        admin_imports: Arc::new(UnavailableAdminOperations),
+        admin_imports,
         admin_policies: Arc::new(UnavailableAdminOperations),
         admin_audits: Arc::new(UnavailableAdminOperations),
         admin_operations: Arc::new(StaticOperations),
@@ -366,6 +429,7 @@ async fn read_permission_can_read_but_cannot_mutate_domains() {
 async fn quick_crawl_requires_an_operator_and_normalizes_the_target() {
     let scheduler = Arc::new(RecordingScheduler {
         requested: Mutex::new(Vec::new()),
+        batch_requests: Mutex::new(Vec::new()),
     });
     let (app, _) = app_with_scheduler(
         60,
@@ -394,6 +458,73 @@ async fn quick_crawl_requires_an_operator_and_normalizes_the_target() {
     let forbidden = app
         .oneshot(authorized_as(
             Request::post("/api/v1/admin/domains/example.com/crawl")
+                .body(Body::empty())
+                .expect("request should build"),
+            "viewer-token",
+        ))
+        .await
+        .expect("route should respond");
+    assert_eq!(forbidden.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn admins_can_list_and_recrawl_completed_import_batches() {
+    let scheduler = Arc::new(RecordingScheduler {
+        requested: Mutex::new(Vec::new()),
+        batch_requests: Mutex::new(Vec::new()),
+    });
+    let (app, _) = app_with_components(
+        60,
+        Arc::clone(&scheduler) as Arc<dyn AdminSchedulerOperations>,
+        Arc::new(StaticImports),
+    );
+
+    let list = app
+        .clone()
+        .oneshot(authorized_as(
+            Request::get("/api/v1/admin/imports?limit=10")
+                .body(Body::empty())
+                .expect("request should build"),
+            "viewer-token",
+        ))
+        .await
+        .expect("route should respond");
+    assert_eq!(list.status(), StatusCode::OK);
+    let list_body = String::from_utf8(
+        to_bytes(list.into_body(), usize::MAX)
+            .await
+            .expect("response body should read")
+            .to_vec(),
+    )
+    .expect("response should be JSON");
+    assert!(list_body.contains(r#""source_name":"top domains""#));
+    assert!(list_body.contains(r#""domain_count":500"#));
+
+    let recrawl = app
+        .clone()
+        .oneshot(authorized(
+            Request::post("/api/v1/admin/imports/00000000-0000-0000-0000-000000000123/recrawl")
+                .body(Body::empty())
+                .expect("request should build"),
+        ))
+        .await
+        .expect("route should respond");
+    assert_eq!(recrawl.status(), StatusCode::OK);
+    assert_eq!(
+        scheduler
+            .batch_requests
+            .lock()
+            .expect("test lock should not be poisoned")
+            .as_slice(),
+        [(
+            "00000000-0000-0000-0000-000000000123".to_owned(),
+            "operator".to_owned()
+        )]
+    );
+
+    let forbidden = app
+        .oneshot(authorized_as(
+            Request::post("/api/v1/admin/imports/00000000-0000-0000-0000-000000000123/recrawl")
                 .body(Body::empty())
                 .expect("request should build"),
             "viewer-token",

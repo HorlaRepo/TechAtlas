@@ -1,10 +1,12 @@
 use sqlx::{postgres::PgPoolOptions, query_as, query_scalar};
 use techatlas_database::{
-    PostgresAdminRepository, PostgresAdminWorkflowRepository, run_migrations,
+    PostgresAdminRepository, PostgresAdminWorkflowRepository, PostgresCsvImportRepository,
+    run_migrations,
 };
 use techatlas_models::{
-    AdminCrawlPolicy, AdminOperationError, AdminPolicyOperations, AdminSchedulerOperations,
-    CanonicalDomain, CrawlPriority, DomainCreationDefaults, DomainRepository, NewDomain,
+    AdminCrawlPolicy, AdminImportOperations, AdminOperationError, AdminPolicyOperations,
+    AdminSchedulerOperations, CanonicalDomain, CrawlPriority, CsvDomainImport,
+    DomainCreationDefaults, DomainRepository, NewDomain,
 };
 use testcontainers_modules::{
     postgres::Postgres,
@@ -119,6 +121,81 @@ async fn quick_crawl_rejects_a_disabled_domain_without_an_audit_event()
         .fetch_one(&pool)
         .await?,
         0
+    );
+
+    pool.close().await;
+    Ok(())
+}
+
+#[tokio::test]
+async fn import_batch_recrawl_schedules_enabled_domains_and_audits_the_request()
+-> Result<(), Box<dyn std::error::Error>> {
+    let container = Postgres::default().with_tag("16-alpine").start().await?;
+    let port = container.get_host_port_ipv4(5432).await?;
+    let database_url = format!("postgres://postgres:postgres@127.0.0.1:{port}/postgres");
+    let pool = PgPoolOptions::new()
+        .max_connections(4)
+        .connect(&database_url)
+        .await?;
+    run_migrations(&pool).await?;
+    let imports = PostgresCsvImportRepository::new(pool.clone());
+    let imported = imports
+        .import_csv(
+            "top domains",
+            "operator-123",
+            CsvDomainImport::parse(b"domain\nenabled.example\ndisabled.example\n")?,
+        )
+        .await?;
+    let batches = imports.completed_import_batches(10).await?;
+    assert_eq!(batches.len(), 1);
+    assert_eq!(batches[0].import_id, imported.import_id.to_string());
+    assert_eq!(batches[0].source_name, "top domains");
+    assert_eq!(batches[0].domain_count, 2);
+    let disabled = CanonicalDomain::parse("disabled.example")?;
+    PostgresAdminRepository::new(pool.clone())
+        .update_policy(
+            &disabled,
+            AdminCrawlPolicy::new(false, CrawlPriority::Medium, 168)?,
+            "operator-123",
+        )
+        .await?;
+    let now = OffsetDateTime::now_utc();
+    let now = now.replace_nanosecond(now.nanosecond() / 1_000 * 1_000)?;
+    let result = PostgresAdminWorkflowRepository::new(pool.clone())
+        .schedule_import_batch_recrawl(&imported.import_id.to_string(), "operator-123", now)
+        .await?;
+
+    assert_eq!(result.import_id, imported.import_id.to_string());
+    assert_eq!(result.source_name, "top domains");
+    assert_eq!(result.requested_domain_count, 2);
+    assert_eq!(result.scheduled_domain_count, 1);
+    assert_eq!(result.skipped_domain_count, 1);
+    let next_crawl_at: OffsetDateTime = query_scalar(
+        "SELECT next_crawl_at FROM crawl_policies WHERE domain_id = \
+         (SELECT id FROM domains WHERE canonical_domain = 'enabled.example')",
+    )
+    .fetch_one(&pool)
+    .await?;
+    assert_eq!(next_crawl_at, now);
+    let audit: (String, String, String, i64, i64, i64) = query_as(
+        "SELECT actor_subject, action, resource_kind, \
+                (metadata ->> 'requested_domain_count')::BIGINT, \
+                (metadata ->> 'scheduled_domain_count')::BIGINT, \
+                (metadata ->> 'skipped_domain_count')::BIGINT \
+         FROM admin_audit_events WHERE action = 'import.recrawl_requested'",
+    )
+    .fetch_one(&pool)
+    .await?;
+    assert_eq!(
+        audit,
+        (
+            "operator-123".to_owned(),
+            "import.recrawl_requested".to_owned(),
+            "import".to_owned(),
+            2,
+            1,
+            1,
+        )
     );
 
     pool.close().await;

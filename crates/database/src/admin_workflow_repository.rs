@@ -3,8 +3,8 @@ use serde_json::Value;
 use sqlx::{PgPool, Row, types::Json};
 use techatlas_models::{
     AdminCrawlAttempt, AdminCrawlRetryState, AdminDetectionRule, AdminDetectionRuleOperations,
-    AdminDetectionRuleVersion, AdminOperationError, AdminReprocessingOperations,
-    AdminReprocessingRun, AdminSchedulerOperations,
+    AdminDetectionRuleVersion, AdminImportBatchRecrawl, AdminOperationError,
+    AdminReprocessingOperations, AdminReprocessingRun, AdminSchedulerOperations,
 };
 use time::OffsetDateTime;
 use uuid::Uuid;
@@ -318,6 +318,86 @@ impl AdminSchedulerOperations for PostgresAdminWorkflowRepository {
         .map_err(map_database_error)?;
         transaction.commit().await.map_err(map_database_error)?;
         Ok(scheduled_count)
+    }
+
+    async fn schedule_import_batch_recrawl(
+        &self,
+        import_id: &str,
+        actor_subject: &str,
+        now: OffsetDateTime,
+    ) -> Result<AdminImportBatchRecrawl, AdminOperationError> {
+        let import_id = Uuid::parse_str(import_id).map_err(|_| AdminOperationError::Validation)?;
+        let mut transaction = self.pool.begin().await.map_err(map_database_error)?;
+        let batch = sqlx::query(
+            "SELECT imports.id, sources.name AS source_name \
+             FROM imports \
+             JOIN domain_sources AS sources ON sources.id = imports.source_id \
+             WHERE imports.id = $1 AND imports.status = 'completed' \
+             FOR UPDATE OF imports",
+        )
+        .bind(import_id)
+        .fetch_optional(&mut *transaction)
+        .await
+        .map_err(map_database_error)?
+        .ok_or(AdminOperationError::NotFound)?;
+        let source_name: String = batch.try_get("source_name").map_err(map_row_error)?;
+        let requested_domain_count = u64::try_from(
+            sqlx::query_scalar::<_, i64>(
+                "SELECT COUNT(DISTINCT domain_id) FROM import_rows \
+                 WHERE import_id = $1 AND domain_id IS NOT NULL",
+            )
+            .bind(import_id)
+            .fetch_one(&mut *transaction)
+            .await
+            .map_err(map_database_error)?,
+        )
+        .map_err(|_| AdminOperationError::Unavailable)?;
+        let scheduled_domain_ids = sqlx::query_scalar::<_, Uuid>(
+            "UPDATE crawl_policies AS policies \
+             SET next_crawl_at = $1, updated_at = $1 \
+             WHERE policies.is_enabled \
+               AND EXISTS (SELECT 1 \
+                           FROM import_rows AS rows \
+                           JOIN domains ON domains.id = rows.domain_id \
+                           WHERE rows.import_id = $2 \
+                             AND rows.domain_id = policies.domain_id \
+                             AND domains.archived_at IS NULL) \
+               AND NOT EXISTS (SELECT 1 FROM crawl_attempts AS attempts \
+                               WHERE attempts.domain_id = policies.domain_id \
+                                 AND attempts.status IN ('queued', 'running')) \
+             RETURNING policies.domain_id",
+        )
+        .bind(now)
+        .bind(import_id)
+        .fetch_all(&mut *transaction)
+        .await
+        .map_err(map_database_error)?;
+        let scheduled_domain_count = u64::try_from(scheduled_domain_ids.len())
+            .map_err(|_| AdminOperationError::Unavailable)?;
+        let skipped_domain_count = requested_domain_count
+            .checked_sub(scheduled_domain_count)
+            .ok_or(AdminOperationError::Unavailable)?;
+        sqlx::query(
+            "INSERT INTO admin_audit_events (actor_subject, action, resource_kind, resource_id, metadata) \
+             VALUES ($1, 'import.recrawl_requested', 'import', $2, jsonb_build_object( \
+                 'requested_domain_count', $3, 'scheduled_domain_count', $4, 'skipped_domain_count', $5))",
+        )
+        .bind(actor_subject)
+        .bind(import_id)
+        .bind(i64::try_from(requested_domain_count).map_err(|_| AdminOperationError::Unavailable)?)
+        .bind(i64::try_from(scheduled_domain_count).map_err(|_| AdminOperationError::Unavailable)?)
+        .bind(i64::try_from(skipped_domain_count).map_err(|_| AdminOperationError::Unavailable)?)
+        .execute(&mut *transaction)
+        .await
+        .map_err(map_database_error)?;
+        transaction.commit().await.map_err(map_database_error)?;
+        Ok(AdminImportBatchRecrawl {
+            import_id: import_id.to_string(),
+            source_name,
+            requested_domain_count,
+            scheduled_domain_count,
+            skipped_domain_count,
+        })
     }
 }
 

@@ -221,6 +221,10 @@ For example, a source file with `pages`, `urls`, or ranking columns must be redu
 `domain` column before import. The import records its explicit source name and initiating operator;
 see the [CLI import command](./docs/cli/README.md#import-csv) for the full invocation.
 
+Completed administrator imports remain available as named batches. In **Admin → Imports**, choose
+**Recrawl batch** to make its currently enabled, non-active domains eligible for the normal
+scheduler. The operation is audited and never bypasses crawl safety, robots, or queue limits.
+
 ## Public routes and capabilities
 
 | Route | Capability |
