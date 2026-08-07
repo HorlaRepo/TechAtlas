@@ -1,7 +1,7 @@
 import { ArrowDownRight, ClockCounterClockwise } from "@phosphor-icons/react";
 import { Card } from "@techatlas/ui";
 import type { OperationsOverviewResponse } from "@techatlas/api-client";
-import { formatCount, queueBucketsFor } from "./data";
+import { activeQueueSizeFor, formatCount, queueBucketsFor } from "./data";
 
 const toneClasses = {
   primary: "bg-primary",
@@ -11,13 +11,13 @@ const toneClasses = {
 
 export function QueueHealthPanel({ overview }: { overview: OperationsOverviewResponse }) {
   const queueBuckets = queueBucketsFor(overview);
-  const queueSize = overview.queue.ready_count + overview.queue.processing_count + overview.queue.scheduled_count;
+  const queueSize = activeQueueSizeFor(overview);
   return (
     <Card className="min-h-80">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-mono text-[0.6875rem] font-medium tracking-[0.08em] text-on-surface-variant">QUEUE HEALTH</p>
-          <h2 className="mt-2 font-sans text-xl font-medium tracking-tight text-on-surface">{formatCount(queueSize)} jobs</h2>
+          <h2 className="mt-2 font-sans text-xl font-medium tracking-tight text-on-surface">{formatCount(queueSize)} active jobs</h2>
         </div>
         <span className="inline-flex items-center gap-1 font-mono text-xs text-primary">
           <ArrowDownRight size={16} weight="bold" aria-hidden="true" />
