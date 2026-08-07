@@ -154,7 +154,7 @@ async fn queued_fixture_crawl_creates_one_terminal_attempt_and_one_snapshot()
         "deterministic_rule"
     );
     assert_eq!(detection.try_get::<String, _>("rule_slug")?, "nextjs-v1");
-    assert_eq!(detection.try_get::<i16, _>("version")?, 1);
+    assert_eq!(detection.try_get::<i16, _>("version")?, 2);
     let evidence_count: i64 = query_scalar("SELECT COUNT(*) FROM detection_evidence")
         .fetch_one(&pool)
         .await?;
@@ -182,7 +182,7 @@ async fn queued_fixture_crawl_creates_one_terminal_attempt_and_one_snapshot()
     }));
     assert!(observation_counts.iter().any(|row| {
         row.try_get::<String, _>("status").ok().as_deref() == Some("confirmed_absent")
-            && row.try_get::<i64, _>("count").ok() == Some(4)
+            && row.try_get::<i64, _>("count").ok() == Some(7)
     }));
     let artifact_row = query(
         "SELECT storage_location, checksum_sha256, uncompressed_size_bytes, compressed_size_bytes, \
