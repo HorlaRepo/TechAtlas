@@ -22,8 +22,10 @@ pub struct PublicTechnology {
     pub confidence: u8,
     pub method: String,
     pub rule_version: u16,
+    #[serde(with = "time::serde::rfc3339")]
     #[schema(value_type = String, format = DateTime)]
     pub first_observed_at: OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339")]
     #[schema(value_type = String, format = DateTime)]
     pub last_observed_at: OffsetDateTime,
     pub evidence: Vec<PublicEvidence>,
@@ -32,8 +34,10 @@ pub struct PublicTechnology {
 #[derive(Clone, Debug, Serialize, ToSchema, PartialEq, Eq)]
 pub struct PublicDomainProfile {
     pub canonical_domain: String,
+    #[serde(with = "time::serde::rfc3339")]
     #[schema(value_type = String, format = DateTime)]
     pub first_indexed_at: OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339::option")]
     #[schema(value_type = Option<String>, format = DateTime)]
     pub last_crawled_at: Option<OffsetDateTime>,
     pub country_code: Option<String>,
@@ -50,6 +54,7 @@ pub struct PublicChange {
     pub from_version: Option<String>,
     pub to_version: Option<String>,
     pub reprocessing_run_id: Option<String>,
+    #[serde(with = "time::serde::rfc3339")]
     #[schema(value_type = String, format = DateTime)]
     pub observed_at: OffsetDateTime,
 }
@@ -60,6 +65,7 @@ pub struct PublicCrawl {
     pub requested_url: String,
     pub final_url: String,
     pub response_status: u16,
+    #[serde(with = "time::serde::rfc3339")]
     #[schema(value_type = String, format = DateTime)]
     pub captured_at: OffsetDateTime,
 }
@@ -84,6 +90,7 @@ pub struct PublicRedirect {
 #[derive(Clone, Debug, Serialize, ToSchema, PartialEq, Eq)]
 pub struct PublicDnsObservation {
     pub source: String,
+    #[serde(with = "time::serde::rfc3339")]
     #[schema(value_type = String, format = DateTime)]
     pub observed_at: OffsetDateTime,
     pub availability: String,
@@ -95,6 +102,7 @@ pub struct PublicDnsObservation {
 #[derive(Clone, Debug, Serialize, ToSchema, PartialEq, Eq)]
 pub struct PublicTlsObservation {
     pub source: String,
+    #[serde(with = "time::serde::rfc3339")]
     #[schema(value_type = String, format = DateTime)]
     pub observed_at: OffsetDateTime,
     pub availability: String,
@@ -105,8 +113,10 @@ pub struct PublicTlsObservation {
     pub certificate_subject: Option<String>,
     pub certificate_issuer: Option<String>,
     pub subject_alternative_names: Vec<String>,
+    #[serde(with = "time::serde::rfc3339::option")]
     #[schema(value_type = Option<String>, format = DateTime)]
     pub certificate_not_before: Option<OffsetDateTime>,
+    #[serde(with = "time::serde::rfc3339::option")]
     #[schema(value_type = Option<String>, format = DateTime)]
     pub certificate_not_after: Option<OffsetDateTime>,
 }
@@ -146,8 +156,10 @@ impl From<PublicPage<PublicCrawl>> for PublicCrawlPage {
 /// Confirmation that a public refresh request was recorded for scheduler processing.
 #[derive(Clone, Debug, Serialize, ToSchema, PartialEq, Eq)]
 pub struct PublicRefreshRequest {
+    #[serde(with = "time::serde::rfc3339")]
     #[schema(value_type = String, format = DateTime)]
     pub accepted_at: OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339")]
     #[schema(value_type = String, format = DateTime)]
     pub next_allowed_at: OffsetDateTime,
 }
@@ -205,6 +217,7 @@ pub struct PublicTechnologyLibraryPage {
 #[derive(Clone, Debug, Serialize, ToSchema, PartialEq, Eq)]
 pub struct PublicDomainSummary {
     pub canonical_domain: String,
+    #[serde(with = "time::serde::rfc3339::option")]
     #[schema(value_type = Option<String>, format = DateTime)]
     pub last_crawled_at: Option<OffsetDateTime>,
 }
@@ -277,6 +290,7 @@ pub struct PublicComparisonCell {
     pub canonical_domain: String,
     pub technology_slug: Option<String>,
     pub state: String,
+    #[serde(with = "time::serde::rfc3339::option")]
     #[schema(value_type = Option<String>, format = DateTime)]
     pub last_observed_at: Option<OffsetDateTime>,
 }
@@ -341,6 +355,7 @@ pub struct PublicTechnologyMigration {
 #[derive(Clone, Debug, Serialize, ToSchema, PartialEq, Eq)]
 pub struct PublicAnalyticsDomain {
     pub canonical_domain: String,
+    #[serde(with = "time::serde::rfc3339")]
     #[schema(value_type = String, format = DateTime)]
     pub first_indexed_at: OffsetDateTime,
 }
@@ -349,6 +364,7 @@ pub struct PublicAnalyticsDomain {
 pub struct PublicFrequentCrawlDomain {
     pub canonical_domain: String,
     pub crawl_count: u64,
+    #[serde(with = "time::serde::rfc3339")]
     #[schema(value_type = String, format = DateTime)]
     pub last_crawled_at: OffsetDateTime,
 }
