@@ -123,6 +123,7 @@ function ResultPage({ page, onPageChange }: { page: PublicDomainSearchPage; onPa
             <tr>
               <th className="px-5 py-3 font-medium">Domain</th>
               <th className="px-5 py-3 font-medium">Technologies</th>
+              <th className="px-5 py-3 font-medium">Highest confidence</th>
               <th className="px-5 py-3 font-medium">Location</th>
               <th className="px-5 py-3 font-medium">Last successful crawl</th>
               <th className="px-5 py-3 font-medium">Updated</th>
@@ -160,6 +161,7 @@ function DomainResultRow({ result }: { result: PublicDomainSearchHit }) {
     <tr className="bg-surface transition-colors hover:bg-surface-container-low">
       <td className="px-5 py-4 align-top"><DomainLink domain={result.canonical_domain} /></td>
       <td className="max-w-sm px-5 py-4 align-top"><TechnologyBadges slugs={result.technology_slugs} /><CategorySummary slugs={result.category_slugs} /></td>
+      <td className="px-5 py-4 align-top"><Confidence confidence={result.max_confidence} /></td>
       <td className="px-5 py-4 align-top font-mono text-xs text-on-surface-variant">{result.country_code ?? "Country unavailable"}</td>
       <td className="px-5 py-4 align-top font-mono text-xs text-on-surface-variant">{formatCrawlTimestamp(result.last_crawled_at)}</td>
       <td className="px-5 py-4 align-top font-mono text-xs text-on-surface-variant">{formatTimestamp(result.updated_at)}</td>
@@ -173,6 +175,7 @@ function DomainResultCard({ result }: { result: PublicDomainSearchHit }) {
       <DomainLink domain={result.canonical_domain} />
       <div className="mt-4"><TechnologyBadges slugs={result.technology_slugs} /><CategorySummary slugs={result.category_slugs} /></div>
       <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-outline-variant/30 pt-4 font-mono text-xs">
+        <div><dt className="text-on-surface-variant">Highest confidence</dt><dd className="mt-1"><Confidence confidence={result.max_confidence} /></dd></div>
         <div><dt className="text-on-surface-variant">Location</dt><dd className="mt-1 text-on-surface">{result.country_code ?? "Country unavailable"}</dd></div>
         <div><dt className="text-on-surface-variant">Last successful crawl</dt><dd className="mt-1 text-on-surface">{formatCrawlTimestamp(result.last_crawled_at)}</dd></div>
         <div className="col-span-2"><dt className="text-on-surface-variant">Updated</dt><dd className="mt-1 text-on-surface">{formatTimestamp(result.updated_at)}</dd></div>
@@ -194,6 +197,11 @@ function TechnologyBadges({ slugs }: { slugs: string[] }) {
 
 function CategorySummary({ slugs }: { slugs: string[] }) {
   return slugs.length > 0 ? <p className="mt-2 font-mono text-[0.625rem] text-on-surface-variant">{slugs.join(" · ")}</p> : null;
+}
+
+function Confidence({ confidence }: { confidence: number }) {
+  const value = Math.max(0, Math.min(100, confidence));
+  return <span className="font-mono text-xs text-primary" aria-label={`Highest confidence ${value}%`}>{value}%</span>;
 }
 
 function SearchState({ title, description, action }: { title: string; description: string; action?: React.ReactNode }) {

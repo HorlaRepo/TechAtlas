@@ -21,7 +21,7 @@ const { compare, searchDomains } = vi.hoisted(() => ({
   })),
   searchDomains: vi.fn(async () => ({
     data: {
-      results: [{ canonical_domain: "gamma.test", technology_slugs: ["nextjs"], category_slugs: ["frontend-framework"], country_code: null, last_crawled_at: null, updated_at: "2026-08-04T10:00:00Z" }],
+      results: [{ canonical_domain: "gamma.test", technology_slugs: ["nextjs"], category_slugs: ["frontend-framework"], country_code: null, max_confidence: 95, last_crawled_at: null, updated_at: "2026-08-04T10:00:00Z" }],
       estimated_total_hits: 1,
       facets: { technology: {}, category: {}, country: {} },
       limit: 5,

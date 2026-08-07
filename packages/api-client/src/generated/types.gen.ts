@@ -351,6 +351,7 @@ export type PublicDomainSearchHit = {
     category_slugs: Array<string>;
     country_code?: string | null;
     last_crawled_at?: string | null;
+    max_confidence: number;
     technology_slugs: Array<string>;
     updated_at: string;
 };

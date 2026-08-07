@@ -116,6 +116,7 @@ pub struct DomainSearchHit {
     pub technology_slugs: Vec<String>,
     pub category_slugs: Vec<String>,
     pub country_code: Option<String>,
+    pub max_confidence: u8,
     pub last_crawled_at: Option<OffsetDateTime>,
     pub updated_at: OffsetDateTime,
 }
@@ -280,6 +281,7 @@ impl DomainSearch for MeilisearchDomainIndex {
                 technology_slugs: hit.technology_slugs,
                 category_slugs: hit.category_slugs,
                 country_code: hit.country_code,
+                max_confidence: hit.max_confidence,
                 last_crawled_at: hit.last_crawled_at,
                 updated_at: hit.updated_at,
             })
@@ -337,6 +339,7 @@ struct MeiliSearchHit {
     #[serde(default)]
     category_slugs: Vec<String>,
     country_code: Option<String>,
+    max_confidence: u8,
     last_crawled_at: Option<OffsetDateTime>,
     updated_at: OffsetDateTime,
 }
@@ -464,6 +467,7 @@ mod tests {
 
         assert_eq!(document.technology_slugs, ["nextjs", "stripe"]);
         assert_eq!(document.category_slugs, ["framework", "payment-provider"]);
+        assert_eq!(document.max_confidence, 95);
     }
 
     #[test]

@@ -263,6 +263,7 @@ pub struct PublicDomainSearchHit {
     pub technology_slugs: Vec<String>,
     pub category_slugs: Vec<String>,
     pub country_code: Option<String>,
+    pub max_confidence: u8,
     pub last_crawled_at: Option<String>,
     pub updated_at: String,
 }

@@ -12,6 +12,7 @@ const { searchDomains } = vi.hoisted(() => ({
         technology_slugs: ["react", "nextjs"],
         category_slugs: ["frontend-framework"],
         country_code: "NG",
+        max_confidence: 95,
         last_crawled_at: "2026-08-04T10:00:00Z",
         updated_at: "2026-08-04T11:00:00Z",
       }],
@@ -58,6 +59,7 @@ describe("domain search", () => {
     expect(screen.getByText("Showing 1–1 of 51")).toBeInTheDocument();
     expect(searchDomains).toHaveBeenCalledWith({ query: { q: "example", technology: ["react"], sort: "updated_desc" } });
     expect(screen.getAllByText("example.test").length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText("Highest confidence 95%").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /example.test/ })[0]).toHaveAttribute("href", "/domains/example.test");
 
     fireEvent.click(screen.getByRole("button", { name: /next/i }));
