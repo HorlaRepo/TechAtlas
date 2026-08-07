@@ -258,9 +258,20 @@ services:
     volumes:
       - ../tempo/tempo.yml:/etc/tempo/tempo.yml:ro
       - tempo_data:/tmp/tempo
+    depends_on:
+      tempo-init:
+        condition: service_completed_successfully
     deploy:
       resources:
         limits: { cpus: "0.25", memory: 512M }
+    logging: *json-logging
+
+  tempo-init:
+    image: busybox:1.37.0
+    command: ["sh", "-c", "mkdir -p /tmp/tempo && chown -R 10001:10001 /tmp/tempo"]
+    volumes:
+      - tempo_data:/tmp/tempo
+    restart: "no"
     logging: *json-logging
 
   otel-collector:
