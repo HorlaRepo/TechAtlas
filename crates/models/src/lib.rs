@@ -20,10 +20,10 @@ mod worker;
 pub use admin::{
     AdminActivityKind, AdminAuditCursor, AdminAuditEvent, AdminAuditOperations, AdminCrawlAttempt,
     AdminCrawlPolicy, AdminCrawlRetryState, AdminDetectionRule, AdminDetectionRuleOperations,
-    AdminDetectionRuleVersion, AdminImportOperations, AdminOperationError, AdminOperationsActivity,
-    AdminOperationsOverview, AdminOperationsRead, AdminPolicyOperations, AdminQueueRead,
-    AdminQueueSnapshot, AdminSchedulerOperations, AdminThroughputPoint, AdminWorker,
-    WorkerHeartbeat, WorkerHeartbeatOperations,
+    AdminDetectionRuleVersion, AdminImportBatch, AdminImportBatchRecrawl, AdminImportOperations,
+    AdminOperationError, AdminOperationsActivity, AdminOperationsOverview, AdminOperationsRead,
+    AdminPolicyOperations, AdminQueueRead, AdminQueueSnapshot, AdminSchedulerOperations,
+    AdminThroughputPoint, AdminWorker, WorkerHeartbeat, WorkerHeartbeatOperations,
 };
 pub use crawl_job::{
     CRAWL_JOB_SCHEMA_VERSION, CorrelationId, CrawlJobError, CrawlJobId, CrawlJobOwner, CrawlJobV1,
