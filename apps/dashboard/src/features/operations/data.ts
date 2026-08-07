@@ -20,8 +20,12 @@ export function formatCount(value: number) {
   return new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value);
 }
 
+export function activeQueueSizeFor(overview: OperationsOverviewResponse): number {
+  return overview.queue.ready_count + overview.queue.processing_count;
+}
+
 export function metricsFor(overview: OperationsOverviewResponse): OperationsMetric[] {
-  const queueSize = overview.queue.ready_count + overview.queue.processing_count + overview.queue.scheduled_count;
+  const queueSize = activeQueueSizeFor(overview);
   const healthyWorkers = overview.workers.filter((worker) => worker.status === "healthy").length;
   const throughputTotal = overview.throughput.reduce((total, point) => total + point.completed_count, 0);
   return [

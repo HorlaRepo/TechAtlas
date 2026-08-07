@@ -1,4 +1,5 @@
 import { Card } from "@techatlas/ui";
+import { activeQueueSizeFor } from "@/features/operations/data";
 import { OperationsOverviewError, useOperationsOverview } from "@/features/operations/operations-query";
 import { AdminOperationsSection, AdminOperationsState } from "./admin-operations-state";
 
@@ -21,7 +22,7 @@ export function AdminOperationalAnalyticsPage() {
 
   const { queue, throughput, workers } = overview.data;
   const totalThroughput = throughput.reduce((sum, point) => sum + point.completed_count, 0);
-  const queueTotal = queue.ready_count + queue.processing_count + queue.scheduled_count;
+  const queueTotal = activeQueueSizeFor(overview.data);
 
   return (
     <div className="space-y-8">

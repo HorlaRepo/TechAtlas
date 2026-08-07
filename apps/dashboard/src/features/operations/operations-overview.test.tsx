@@ -58,6 +58,9 @@ describe("operations dashboard", () => {
     expect(screen.getByText("SUCCESSFUL CRAWLS")).toBeInTheDocument();
     expect(screen.getByText("TECH DETECTED")).toBeInTheDocument();
     expect(screen.getAllByText("8.1M").length).toBeGreaterThan(0);
+    expect(screen.getByText("QUEUE SIZE")).toBeInTheDocument();
+    expect(screen.getAllByText("66.6K").length).toBeGreaterThan(0);
+    expect(screen.getByText("18.6K jobs")).toBeInTheDocument();
     expect(screen.queryByText("452")).not.toBeInTheDocument();
   });
 
