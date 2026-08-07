@@ -160,6 +160,74 @@ async fn schedules_bounded_retry_then_records_terminal_failure()
 }
 
 #[tokio::test]
+async fn recovers_stale_running_attempts_through_the_bounded_retry_policy()
+-> Result<(), Box<dyn std::error::Error>> {
+    let (_container, pool) = database().await?;
+    let now = postgres_timestamp(OffsetDateTime::now_utc())?;
+    let queued_at = now - Duration::hours(1);
+    let domain = insert_domain_with_policy(
+        &pool,
+        "abandoned-worker.example",
+        "medium",
+        true,
+        Some(Duration::days(7)),
+        queued_at,
+    )
+    .await?;
+    let repository = PostgresCrawlScheduleRepository::new(pool.clone());
+    let settings = SchedulerSettings::default();
+    let first = repository.reserve_due(queued_at, 1).await?.remove(0);
+    repository.mark_published(first.job_id(), queued_at).await?;
+    query(
+        "UPDATE crawl_attempts \
+         SET status = 'running', started_at = $1 \
+         WHERE job_id = $2",
+    )
+    .bind(queued_at)
+    .bind(first.job_id().as_uuid())
+    .execute(&pool)
+    .await?;
+
+    let recovered = repository
+        .recover_stale_attempts(now, std::time::Duration::from_secs(900), 10, settings)
+        .await?;
+    assert_eq!(recovered, 1);
+
+    let previous: (String, String, String) = sqlx::query_as(
+        "SELECT status, failure_code, failure_summary \
+         FROM crawl_attempts WHERE job_id = $1",
+    )
+    .bind(first.job_id().as_uuid())
+    .fetch_one(&pool)
+    .await?;
+    assert_eq!(previous.0, "failed");
+    assert_eq!(previous.1, "worker_lease_expired");
+    assert_eq!(
+        previous.2,
+        "Worker did not record an outcome before its crawl lease expired"
+    );
+
+    let retry_at = now
+        + Duration::try_from(
+            settings
+                .crawl_retry_delay(1)
+                .expect("first retry should exist"),
+        )?;
+    let pending = repository.pending_publications(retry_at, 10).await?;
+    assert_eq!(pending.len(), 1);
+    assert_eq!(pending[0].job().domain_id().as_uuid(), domain);
+    assert_eq!(pending[0].job().correlation_id(), first.correlation_id());
+
+    let attempt_number: i16 =
+        query_scalar("SELECT attempt_number FROM crawl_attempts WHERE job_id = $1")
+            .bind(pending[0].job().job_id().as_uuid())
+            .fetch_one(&pool)
+            .await?;
+    assert_eq!(attempt_number, 2);
+    Ok(())
+}
+
+#[tokio::test]
 async fn caps_unpublished_outbox_records_with_visible_terminal_failure()
 -> Result<(), Box<dyn std::error::Error>> {
     let (_container, pool) = database().await?;

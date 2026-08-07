@@ -5,7 +5,7 @@ Configuration is environment based. Validation errors name only the missing or i
 | Service | Required configuration | Optional configuration / safe defaults |
 | --- | --- | --- |
 | API | `DATABASE_URL`, `REDIS_URL`, `MEILISEARCH_URL`, `MEILI_MASTER_KEY`, `ADMIN_OIDC_ISSUER`, `ADMIN_OIDC_AUDIENCE`, `ADMIN_OIDC_JWKS_URL` | `API_BIND_ADDRESS=0.0.0.0:3000`, dependency timeout, admin rate limits, public freshness and refresh limits, `RUST_LOG` |
-| Scheduler | `DATABASE_URL`, `REDIS_URL` | bind address, polling/batch limits, operation timeout, crawl and outbox retry policy, `RUST_LOG` |
+| Scheduler | `DATABASE_URL`, `REDIS_URL` | bind address, polling/batch limits, operation timeout, crawl and outbox retry policy, stale-attempt recovery (`SCHEDULER_STALE_ATTEMPT_TIMEOUT_MS=900000`), `RUST_LOG` |
 | Worker | `DATABASE_URL`, `REDIS_URL`, `MEILISEARCH_URL`, `MEILI_MASTER_KEY` | consumer identity/region, queue and politeness limits, crawler limits, artifact retention, retry/index tuning, optional GeoIP database, `RUST_LOG` |
 | Dashboard | `VITE_AUTH0_DOMAIN`, `VITE_AUTH0_CLIENT_ID`, `VITE_AUTH0_AUDIENCE` | `VITE_API_PROXY_TARGET` for Compose deployments and optional `VITE_ADMIN_OBSERVABILITY_URL` for the protected Monitoring deep link; these are public build-time configuration |
 | CLI | `DATABASE_URL` for import/migration/retention; `MEILISEARCH_URL` and `MEILI_MASTER_KEY` for index rebuild | `CLI_DATABASE_CONNECT_TIMEOUT_MS=5000`; `WORKER_ARTIFACT_ROOT` is required only for retention pruning |

@@ -103,7 +103,7 @@ flowchart TB
     class prometheus,otel,tempo,grafana ops;
 ```
 
-The normal crawl path is deliberately durable: the scheduler reads eligibility and refresh intent from PostgreSQL, atomically records a crawl attempt plus an outbox entry, then publishes a versioned job to Redis Streams. Workers are idempotent consumers; they acknowledge only after recording a bounded outcome, while stale stream deliveries can be reclaimed. A public refresh only advances scheduler eligibility—it never bypasses this path.
+The normal crawl path is deliberately durable: the scheduler reads eligibility and refresh intent from PostgreSQL, atomically records a crawl attempt plus an outbox entry, then publishes a versioned job to Redis Streams. Workers are idempotent consumers; they acknowledge only after recording a bounded outcome, while stale stream deliveries can be reclaimed. If a worker exits after claiming a job, the scheduler expires the stale attempt and routes it through the same bounded retry policy. A public refresh only advances scheduler eligibility—it never bypasses this path.
 
 PostgreSQL is the system of record for policy, immutable collection history, detections, evidence, audit events, and projection/outbox state. Raw artifacts are stored separately after redaction. Meilisearch serves only rebuildable domain search and facets; profiles, comparisons, and analytics read PostgreSQL projections. Metrics and traces are operational consumers, not business-data stores.
 

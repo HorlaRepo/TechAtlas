@@ -1867,4 +1867,10 @@ mod tests {
         };
         assert!(sanitized_html_for_storage(&response).is_none());
     }
+
+    #[test]
+    fn tls_client_configs_use_the_single_compiled_crypto_provider() {
+        drop(tls_client_config(true));
+        drop(tls_client_config(false));
+    }
 }

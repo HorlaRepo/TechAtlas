@@ -174,6 +174,20 @@ pub enum CrawlAttemptOutcome {
 
 #[async_trait]
 pub trait CrawlScheduleRepository: Send + Sync {
+    /// Resolves abandoned worker leases through the normal bounded retry policy.
+    ///
+    /// A worker can terminate after claiming a Redis message but before recording a
+    /// terminal outcome. Keeping that attempt `running` would permanently prevent
+    /// the domain from becoming eligible again, so the scheduler reclassifies only
+    /// attempts older than the configured lease duration.
+    async fn recover_stale_attempts(
+        &self,
+        now: OffsetDateTime,
+        stale_after: Duration,
+        limit: usize,
+        settings: SchedulerSettings,
+    ) -> Result<usize, SchedulerRepositoryError>;
+
     async fn reserve_due(
         &self,
         now: OffsetDateTime,
