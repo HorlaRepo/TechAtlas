@@ -110,6 +110,24 @@ where
     P: CrawlJobPublisher,
 {
     let now = OffsetDateTime::now_utc();
+    let recovered = repository
+        .recover_stale_attempts(
+            now,
+            config.stale_attempt_timeout(),
+            config.batch_size(),
+            config.scheduler_settings(),
+        )
+        .await?;
+    metrics.set_value(
+        "scheduler_stale_attempts_recovered",
+        i64::try_from(recovered).unwrap_or(i64::MAX),
+    );
+    if recovered != 0 {
+        info!(
+            count = recovered,
+            "recovered stale crawl attempts through bounded retry policy"
+        );
+    }
     let reserved = repository.reserve_due(now, config.batch_size()).await?;
     metrics.set_value(
         "scheduler_jobs_reserved",
@@ -299,6 +317,7 @@ struct SchedulerConfig {
     log_filter: String,
     poll_interval: Duration,
     batch_size: usize,
+    stale_attempt_timeout: Duration,
     operation_timeout: Duration,
     adoption_snapshot_delay_minutes: u16,
     scheduler_settings: SchedulerSettings,
@@ -322,6 +341,8 @@ impl SchedulerConfig {
         let poll_interval = positive_millis(&values, "SCHEDULER_POLL_INTERVAL_MS", 1_000)?;
         let operation_timeout = positive_millis(&values, "SCHEDULER_OPERATION_TIMEOUT_MS", 5_000)?;
         let batch_size = positive_usize(&values, "SCHEDULER_BATCH_SIZE", 100)?;
+        let stale_attempt_timeout =
+            positive_millis(&values, "SCHEDULER_STALE_ATTEMPT_TIMEOUT_MS", 900_000)?;
         let max_crawl_retries = positive_u8_or_zero(&values, "SCHEDULER_MAX_CRAWL_RETRIES", 3)?;
         let crawl_retry_base = positive_millis(&values, "SCHEDULER_CRAWL_RETRY_BASE_MS", 300_000)?;
         let max_outbox_publish_attempts =
@@ -344,6 +365,7 @@ impl SchedulerConfig {
             log_filter: optional(&values, "RUST_LOG", "techatlas_scheduler=info"),
             poll_interval,
             batch_size,
+            stale_attempt_timeout,
             operation_timeout,
             adoption_snapshot_delay_minutes,
             scheduler_settings,
@@ -372,6 +394,10 @@ impl SchedulerConfig {
 
     fn batch_size(&self) -> usize {
         self.batch_size
+    }
+
+    fn stale_attempt_timeout(&self) -> Duration {
+        self.stale_attempt_timeout
     }
 
     fn operation_timeout(&self) -> Duration {
@@ -512,6 +538,7 @@ mod tests {
         .expect("configuration should parse");
 
         assert_eq!(config.batch_size(), 100);
+        assert_eq!(config.stale_attempt_timeout(), Duration::from_secs(900));
         assert_eq!(config.adoption_snapshot_delay_minutes(), 5);
         assert_eq!(
             config.scheduler_settings().crawl_retry_delay(3),

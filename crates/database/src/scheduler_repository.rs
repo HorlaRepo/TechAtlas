@@ -2,8 +2,9 @@ use async_trait::async_trait;
 use sqlx::{PgPool, Postgres, Row, Transaction};
 use std::time::Duration;
 use techatlas_models::{
-    CorrelationId, CrawlAttemptOutcome, CrawlJobId, CrawlJobV1, CrawlScheduleRepository, DomainId,
-    IdempotencyKey, PendingCrawlJob, SchedulerRepositoryError, SchedulerSettings,
+    CorrelationId, CrawlAttemptOutcome, CrawlFailure, CrawlJobId, CrawlJobV1,
+    CrawlScheduleRepository, DomainId, IdempotencyKey, PendingCrawlJob, SchedulerRepositoryError,
+    SchedulerSettings,
 };
 use time::OffsetDateTime;
 use uuid::Uuid;
@@ -20,6 +21,53 @@ impl PostgresCrawlScheduleRepository {
 
 #[async_trait]
 impl CrawlScheduleRepository for PostgresCrawlScheduleRepository {
+    async fn recover_stale_attempts(
+        &self,
+        now: OffsetDateTime,
+        stale_after: Duration,
+        limit: usize,
+        settings: SchedulerSettings,
+    ) -> Result<usize, SchedulerRepositoryError> {
+        if limit == 0 {
+            return Ok(0);
+        }
+        let stale_after = time::Duration::try_from(stale_after)
+            .map_err(|_| SchedulerRepositoryError::Unavailable)?;
+        let stale_before = now
+            .checked_sub(stale_after)
+            .ok_or(SchedulerRepositoryError::Unavailable)?;
+        let limit = i64::try_from(limit).map_err(|_| SchedulerRepositoryError::Unavailable)?;
+        let stale_job_ids: Vec<Uuid> = sqlx::query_scalar(
+            "SELECT job_id \
+             FROM crawl_attempts \
+             WHERE status = 'running' AND started_at <= $1 \
+             ORDER BY started_at ASC, id ASC \
+             LIMIT $2",
+        )
+        .bind(stale_before)
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_database_error)?;
+
+        let failure = CrawlFailure::new(
+            "worker_lease_expired",
+            "Worker did not record an outcome before its crawl lease expired",
+        )
+        .map_err(|_| SchedulerRepositoryError::Unavailable)?;
+        for job_id in &stale_job_ids {
+            self.record_attempt_outcome(
+                &CrawlJobId::from_uuid(*job_id),
+                CrawlAttemptOutcome::Failed(failure.clone()),
+                now,
+                settings,
+            )
+            .await?;
+        }
+
+        Ok(stale_job_ids.len())
+    }
+
     async fn reserve_due(
         &self,
         now: OffsetDateTime,
