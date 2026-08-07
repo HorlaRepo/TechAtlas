@@ -6,13 +6,16 @@ BE-12 adds deterministic, immutable technology detections to successful crawl sn
 
 | Technology | Category | Signals | Weights |
 | --- | --- | --- | --- |
-| Next.js | Framework | `x-powered-by: Next.js`, `/_next/` script, `meta.generator: Next.js` | 90, 75, 80 |
+| Next.js | Framework | `x-powered-by` contains `Next.js`, `/_next/` script, `meta.generator: Next.js` | 90, 75, 80 |
 | Stripe | Payment Provider | `js.stripe.com` script | 95 |
 | Cloudflare | Hosting | `server: cloudflare`, `cf-ray` present | 90, 80 |
 | PostHog | Analytics | `posthog.com` script | 90 |
 | Shopify | Ecommerce | `cdn.shopify.com` script, `x-shopify-stage` present | 95, 90 |
+| WordPress | CMS | `x-powered-by` contains `WordPress` | 90 |
+| Drupal | CMS | `x-generator` or `meta.generator` contains `Drupal` | 90, 90 |
+| Express | Framework | `x-powered-by: Express` | 90 |
 
-Each matching signal contributes once. Scores sum to a maximum of 100, and the v1 threshold is 70. Evidence preserves its parser source, key, and normalized value. The database stores seeded technologies, rules, and immutable rule versions; detections reference the exact rule version and retain immutable evidence rows.
+Each matching signal contributes once. Scores sum to a maximum of 100, and each published rule threshold is at least 70. Evidence preserves its parser source, key, and normalized value. The database stores seeded technologies, rules, and immutable rule versions; detections reference the exact rule version and retain immutable evidence rows. The active Next.js rule is v2 so versioned `x-powered-by` values such as `Next.js/14` are accepted without editing the original v1 rule.
 
 ## Historical reprocessing
 

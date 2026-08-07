@@ -314,7 +314,7 @@ fn search_request_body(query: &DomainSearchQuery, filters: &[String], sort: Opti
 #[derive(Deserialize)]
 struct MeiliSearchResponse {
     hits: Vec<MeiliSearchHit>,
-    #[serde(default)]
+    #[serde(default, rename = "estimatedTotalHits")]
     estimated_total_hits: u64,
     #[serde(default, rename = "facetDistribution")]
     facet_distribution: MeiliFacetDistribution,
@@ -479,6 +479,7 @@ mod tests {
         }))
         .expect("Meilisearch facet response should deserialize");
 
+        assert_eq!(response.estimated_total_hits, 4);
         assert_eq!(response.facet_distribution.technology_slugs["react"], 3);
         assert_eq!(
             response.facet_distribution.category_slugs["frontend-framework"],

@@ -55,6 +55,7 @@ describe("domain search", () => {
     const onSearchChange = renderSearch();
 
     await screen.findByRole("heading", { name: "51 estimated domains" });
+    expect(screen.getByText("Showing 1–1 of 51")).toBeInTheDocument();
     expect(searchDomains).toHaveBeenCalledWith({ query: { q: "example", technology: ["react"], sort: "updated_desc" } });
     expect(screen.getAllByText("example.test").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /example.test/ })[0]).toHaveAttribute("href", "/domains/example.test");

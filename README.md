@@ -9,7 +9,7 @@ TechAtlas is an intelligence index, not an on-demand scanner or a security-asses
 ## What it provides
 
 - **Public research:** domain and technology search; filtering by technology, category, country, recency, and confidence; comparison; and evidence-backed public analytics.
-- **Explainable detections:** deterministic, versioned rules identify the initial catalogue of Next.js, Stripe, Cloudflare, PostHog, and Shopify. Every detection records confidence, method, rule version, and redacted evidence.
+- **Explainable detections:** deterministic, versioned rules identify the initial catalogue of Next.js, Stripe, Cloudflare, PostHog, Shopify, WordPress, Drupal, and Express. Every detection records confidence, method, rule version, and redacted evidence.
 - **Immutable history:** successful crawls, snapshots, detections, evidence, changes, and reprocessing outputs are append-only. New collection or rule replay creates a new record rather than changing history.
 - **Safe collection:** scheduler-managed crawl eligibility, priority, retries, idempotency, robots compliance, per-domain politeness, redirect and size limits, and SSRF/private-address protections.
 - **Administrator operations:** authenticated users can manage the corpus, import CSV data, set crawl policy, request permitted crawls, inspect jobs and workers, retry eligible failures, manage rules, and review audits.

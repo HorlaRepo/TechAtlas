@@ -133,7 +133,7 @@ const NEXTJS_SIGNALS: &[SignalDefinition] = &[
     SignalDefinition {
         source: ArtifactSource::Header,
         key: "x-powered-by",
-        matcher: SignalMatcher::EqualsIgnoreCase("next.js"),
+        matcher: SignalMatcher::ContainsIgnoreCase("next.js"),
         weight: 90,
     },
     SignalDefinition {
@@ -194,6 +194,35 @@ const SHOPIFY_SIGNALS: &[SignalDefinition] = &[
     },
 ];
 
+const WORDPRESS_SIGNALS: &[SignalDefinition] = &[SignalDefinition {
+    source: ArtifactSource::Header,
+    key: "x-powered-by",
+    matcher: SignalMatcher::ContainsIgnoreCase("wordpress"),
+    weight: 90,
+}];
+
+const DRUPAL_SIGNALS: &[SignalDefinition] = &[
+    SignalDefinition {
+        source: ArtifactSource::Header,
+        key: "x-generator",
+        matcher: SignalMatcher::ContainsIgnoreCase("drupal"),
+        weight: 90,
+    },
+    SignalDefinition {
+        source: ArtifactSource::Html,
+        key: "meta.generator",
+        matcher: SignalMatcher::ContainsIgnoreCase("drupal"),
+        weight: 90,
+    },
+];
+
+const EXPRESS_SIGNALS: &[SignalDefinition] = &[SignalDefinition {
+    source: ArtifactSource::Header,
+    key: "x-powered-by",
+    matcher: SignalMatcher::EqualsIgnoreCase("express"),
+    weight: 90,
+}];
+
 const INITIAL_RULES: &[RuleDefinition] = &[
     RuleDefinition {
         technology_slug: "nextjs",
@@ -234,6 +263,30 @@ const INITIAL_RULES: &[RuleDefinition] = &[
         version: 1,
         threshold: DETECTION_THRESHOLD,
         signals: SHOPIFY_SIGNALS,
+    },
+    RuleDefinition {
+        technology_slug: "wordpress",
+        technology_category_slug: "cms",
+        rule_slug: "wordpress-v1",
+        version: 1,
+        threshold: DETECTION_THRESHOLD,
+        signals: WORDPRESS_SIGNALS,
+    },
+    RuleDefinition {
+        technology_slug: "drupal",
+        technology_category_slug: "cms",
+        rule_slug: "drupal-v1",
+        version: 1,
+        threshold: DETECTION_THRESHOLD,
+        signals: DRUPAL_SIGNALS,
+    },
+    RuleDefinition {
+        technology_slug: "express",
+        technology_category_slug: "framework",
+        rule_slug: "express-v1",
+        version: 1,
+        threshold: DETECTION_THRESHOLD,
+        signals: EXPRESS_SIGNALS,
     },
 ];
 
@@ -592,6 +645,45 @@ mod tests {
         );
         assert_eq!(detections.detections()[0].confidence().get(), 95);
         assert_eq!(detections.detections()[0].evidence().len(), 1);
+    }
+
+    #[test]
+    fn detects_high_confidence_cms_and_framework_headers() {
+        let nextjs = evaluate(&parsed("", &[("x-powered-by", "Next.js/14.2.1")]))
+            .expect("static rules should be valid");
+        assert!(
+            nextjs
+                .detections()
+                .iter()
+                .any(|detection| detection.technology_slug().as_str() == "nextjs")
+        );
+
+        let wordpress = evaluate(&parsed("", &[("x-powered-by", "WordPress VIP")]))
+            .expect("static rules should be valid");
+        assert!(
+            wordpress
+                .detections()
+                .iter()
+                .any(|detection| detection.technology_slug().as_str() == "wordpress")
+        );
+
+        let drupal = evaluate(&parsed("", &[("x-generator", "Drupal 11")]))
+            .expect("static rules should be valid");
+        assert!(
+            drupal
+                .detections()
+                .iter()
+                .any(|detection| detection.technology_slug().as_str() == "drupal")
+        );
+
+        let express = evaluate(&parsed("", &[("x-powered-by", "Express")]))
+            .expect("static rules should be valid");
+        assert!(
+            express
+                .detections()
+                .iter()
+                .any(|detection| detection.technology_slug().as_str() == "express")
+        );
     }
 
     #[test]
