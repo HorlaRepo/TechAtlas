@@ -23,6 +23,11 @@ readonly release_environment="/etc/techatlas/release.env"
 readonly compose_file="${repository}/infrastructure/compose/docker-compose.prod.yml"
 readonly tunnel_service="cloudflared-techatlas.service"
 
+initial_release=true
+if [[ "$(docker inspect --format '{{.State.Running}}' techatlas-api-1 2>/dev/null || true)" == "true" ]]; then
+    initial_release=false
+fi
+
 for required_path in "${repository}/.git" "${production_environment}" "${release_directory}/backend.tar.gz" "${release_directory}/dashboard.tar.gz" "${release_directory}/backup.tar.gz"; do
     if [[ ! -e "${required_path}" ]]; then
         echo "required deployment path is missing: ${required_path}" >&2
@@ -122,6 +127,10 @@ wait_for_service_exit artifact-init 60
 
 "${compose[@]}" up --detach --force-recreate migrate
 wait_for_service_exit migrate 300
+
+if [[ "${initial_release}" == true ]]; then
+    "${compose[@]}" --profile maintenance run --rm --no-deps maintenance-cli cli rebuild-search-index
+fi
 
 "${compose[@]}" up --detach --remove-orphans --wait --wait-timeout 240 \
     api scheduler worker dashboard caddy prometheus tempo otel-collector grafana

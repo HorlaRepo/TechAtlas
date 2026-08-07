@@ -29,6 +29,6 @@ trap cleanup EXIT
 
 "${compose[@]}" up --detach postgres meilisearch
 "${compose[@]}" run --rm --no-deps restore /backup/restore.sh "${backup_id}"
-"${compose[@]}" run --rm --no-deps maintenance-cli migrate-database
-"${compose[@]}" run --rm --no-deps maintenance-cli rebuild-search-index
+"${compose[@]}" run --rm --no-deps maintenance-cli cli migrate-database
+"${compose[@]}" run --rm --no-deps maintenance-cli cli rebuild-search-index
 echo "restore rehearsal completed successfully for ${backup_id}"
