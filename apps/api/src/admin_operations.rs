@@ -29,6 +29,11 @@ pub fn router() -> Router<AppState> {
             get(operations_overview),
         )
         .route("/api/v1/admin/imports/csv", post(import_csv))
+        .route("/api/v1/admin/imports", get(completed_import_batches))
+        .route(
+            "/api/v1/admin/imports/{import_id}/recrawl",
+            post(schedule_import_batch_recrawl),
+        )
         .route(
             "/api/v1/admin/domains/{canonical_domain}/policy",
             patch(update_policy),
@@ -87,6 +92,34 @@ pub struct CsvImportResponse {
     pub accepted_row_count: u32,
     pub duplicate_row_count: u32,
     pub rejected_row_count: u32,
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct ImportBatchQuery {
+    pub limit: Option<usize>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ImportBatchResponse {
+    pub import_id: String,
+    pub source_name: String,
+    pub completed_at: String,
+    pub domain_count: u64,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ImportBatchListResponse {
+    pub imports: Vec<ImportBatchResponse>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ImportBatchRecrawlResponse {
+    pub import_id: String,
+    pub source_name: String,
+    pub requested_domain_count: u64,
+    pub scheduled_domain_count: u64,
+    pub skipped_domain_count: u64,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -481,6 +514,62 @@ pub async fn import_csv(
             rejected_row_count: result.rejected_row_count,
         }),
     ))
+}
+
+#[utoipa::path(get, path = "/api/v1/admin/imports", tag = "admin-imports", params(ImportBatchQuery), responses((status = 200, body = ImportBatchListResponse), (status = 401, body = ErrorEnvelope), (status = 403, body = ErrorEnvelope), (status = 422, body = ErrorEnvelope), (status = 503, body = ErrorEnvelope)), security(("oidc_bearer" = [])))]
+pub async fn completed_import_batches(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    query: Result<Query<ImportBatchQuery>, axum::extract::rejection::QueryRejection>,
+) -> Result<Json<ImportBatchListResponse>, AdminApiError> {
+    authorize(&*state.admin_auth, &headers, AdminPermission::View).await?;
+    let Query(query) = query.map_err(|_| AdminApiError::Validation)?;
+    let limit = query.limit.unwrap_or(DEFAULT_PAGE_SIZE);
+    if !(1..=MAX_PAGE_SIZE).contains(&limit) {
+        return Err(AdminApiError::Validation);
+    }
+    let imports = state
+        .admin_imports
+        .completed_import_batches(limit)
+        .await
+        .map_err(map_operation)?;
+    Ok(Json(ImportBatchListResponse {
+        imports: imports
+            .into_iter()
+            .map(|batch| {
+                Ok(ImportBatchResponse {
+                    import_id: batch.import_id,
+                    source_name: batch.source_name,
+                    completed_at: batch
+                        .completed_at
+                        .format(&Rfc3339)
+                        .map_err(|_| AdminApiError::Unavailable)?,
+                    domain_count: batch.domain_count,
+                })
+            })
+            .collect::<Result<_, AdminApiError>>()?,
+    }))
+}
+
+#[utoipa::path(post, path = "/api/v1/admin/imports/{import_id}/recrawl", tag = "admin-imports", params(("import_id" = String, Path, description = "Completed CSV import batch identifier")), responses((status = 200, body = ImportBatchRecrawlResponse), (status = 401, body = ErrorEnvelope), (status = 403, body = ErrorEnvelope), (status = 404, body = ErrorEnvelope), (status = 422, body = ErrorEnvelope), (status = 429, body = ErrorEnvelope), (status = 503, body = ErrorEnvelope)), security(("oidc_bearer" = [])))]
+pub async fn schedule_import_batch_recrawl(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(import_id): Path<String>,
+) -> Result<Json<ImportBatchRecrawlResponse>, AdminApiError> {
+    let principal = authorize(&*state.admin_auth, &headers, AdminPermission::Operate).await?;
+    let result = state
+        .admin_scheduler
+        .schedule_import_batch_recrawl(&import_id, principal.subject(), OffsetDateTime::now_utc())
+        .await
+        .map_err(map_operation)?;
+    Ok(Json(ImportBatchRecrawlResponse {
+        import_id: result.import_id,
+        source_name: result.source_name,
+        requested_domain_count: result.requested_domain_count,
+        scheduled_domain_count: result.scheduled_domain_count,
+        skipped_domain_count: result.skipped_domain_count,
+    }))
 }
 
 #[utoipa::path(patch, path = "/api/v1/admin/domains/{canonical_domain}/policy", tag = "admin-domains", params(("canonical_domain" = String, Path)), request_body = UpdatePolicyRequest, responses((status = 200, body = PolicyResponse), (status = 401, body = ErrorEnvelope), (status = 403, body = ErrorEnvelope), (status = 404, body = ErrorEnvelope), (status = 422, body = ErrorEnvelope), (status = 429, body = ErrorEnvelope), (status = 503, body = ErrorEnvelope)), security(("oidc_bearer" = [])))]

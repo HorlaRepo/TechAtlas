@@ -10,6 +10,7 @@ BE-16 protects versioned administrator operations with OIDC bearer tokens:
 - `GET /api/v1/admin/domains` lists active domains in canonical-domain order using `cursor` and `limit` (default `50`, maximum `100`).
 - `GET /api/v1/admin/domains/{canonical_domain}` returns one active domain.
 - `POST /api/v1/admin/imports/csv` imports a bounded CSV document and returns aggregate row outcomes.
+- `GET /api/v1/admin/imports` lists recent completed import batches; `POST /api/v1/admin/imports/{import_id}/recrawl` schedules an audited, scheduler-mediated recrawl for that batch's currently enabled and inactive domains.
 - `PATCH /api/v1/admin/domains/{canonical_domain}/policy` updates the enabled state, priority, and crawl interval.
 - `GET /api/v1/admin/audit-events` returns a bounded page of immutable administrator audit events.
 

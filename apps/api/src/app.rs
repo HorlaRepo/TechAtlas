@@ -56,6 +56,13 @@ impl AdminImportOperations for UnavailableAdminOperations {
     ) -> Result<techatlas_models::CsvImportResult, AdminOperationError> {
         Err(AdminOperationError::Unavailable)
     }
+
+    async fn completed_import_batches(
+        &self,
+        _: usize,
+    ) -> Result<Vec<techatlas_models::AdminImportBatch>, AdminOperationError> {
+        Err(AdminOperationError::Unavailable)
+    }
 }
 #[async_trait]
 impl AdminPolicyOperations for UnavailableAdminOperations {
@@ -148,6 +155,15 @@ impl AdminSchedulerOperations for UnavailableAdminOperations {
         _: &str,
         _: time::OffsetDateTime,
     ) -> Result<u64, AdminOperationError> {
+        Err(AdminOperationError::Unavailable)
+    }
+
+    async fn schedule_import_batch_recrawl(
+        &self,
+        _: &str,
+        _: &str,
+        _: time::OffsetDateTime,
+    ) -> Result<techatlas_models::AdminImportBatchRecrawl, AdminOperationError> {
         Err(AdminOperationError::Unavailable)
     }
 }

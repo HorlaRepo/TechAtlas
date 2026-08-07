@@ -100,6 +100,23 @@ pub struct AdminCrawlAttempt {
     pub retry_eligible: bool,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AdminImportBatch {
+    pub import_id: String,
+    pub source_name: String,
+    pub completed_at: OffsetDateTime,
+    pub domain_count: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AdminImportBatchRecrawl {
+    pub import_id: String,
+    pub source_name: String,
+    pub requested_domain_count: u64,
+    pub scheduled_domain_count: u64,
+    pub skipped_domain_count: u64,
+}
+
 #[derive(Clone, Copy, Debug, Serialize, ToSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum AdminCrawlRetryState {
@@ -176,6 +193,11 @@ pub trait AdminImportOperations: Send + Sync {
         actor_subject: &str,
         document: CsvDomainImport,
     ) -> Result<CsvImportResult, AdminOperationError>;
+
+    async fn completed_import_batches(
+        &self,
+        limit: usize,
+    ) -> Result<Vec<AdminImportBatch>, AdminOperationError>;
 }
 
 #[async_trait]
@@ -224,6 +246,13 @@ pub trait AdminSchedulerOperations: Send + Sync {
         actor_subject: &str,
         now: OffsetDateTime,
     ) -> Result<u64, AdminOperationError>;
+    /// Makes the active enabled domains in one completed import eligible for scheduler processing.
+    async fn schedule_import_batch_recrawl(
+        &self,
+        import_id: &str,
+        actor_subject: &str,
+        now: OffsetDateTime,
+    ) -> Result<AdminImportBatchRecrawl, AdminOperationError>;
 }
 
 #[async_trait]

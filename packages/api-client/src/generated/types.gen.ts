@@ -112,6 +112,25 @@ export type ErrorEnvelope = {
     error: ErrorBody;
 };
 
+export type ImportBatchListResponse = {
+    imports: Array<ImportBatchResponse>;
+};
+
+export type ImportBatchRecrawlResponse = {
+    import_id: string;
+    requested_domain_count: number;
+    scheduled_domain_count: number;
+    skipped_domain_count: number;
+    source_name: string;
+};
+
+export type ImportBatchResponse = {
+    completed_at: string;
+    domain_count: number;
+    import_id: string;
+    source_name: string;
+};
+
 export type OperationsActivityResponse = {
     description: string;
     id: string;
@@ -1009,6 +1028,30 @@ export type UpdatePolicyResponses = {
 
 export type UpdatePolicyResponse = UpdatePolicyResponses[keyof UpdatePolicyResponses];
 
+export type CompletedImportBatchesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+    };
+    url: '/api/v1/admin/imports';
+};
+
+export type CompletedImportBatchesErrors = {
+    401: ErrorEnvelope;
+    403: ErrorEnvelope;
+    422: ErrorEnvelope;
+    503: ErrorEnvelope;
+};
+
+export type CompletedImportBatchesError = CompletedImportBatchesErrors[keyof CompletedImportBatchesErrors];
+
+export type CompletedImportBatchesResponses = {
+    200: ImportBatchListResponse;
+};
+
+export type CompletedImportBatchesResponse = CompletedImportBatchesResponses[keyof CompletedImportBatchesResponses];
+
 export type ImportCsvData = {
     body: CsvImportRequest;
     path?: never;
@@ -1031,6 +1074,35 @@ export type ImportCsvResponses = {
 };
 
 export type ImportCsvResponse = ImportCsvResponses[keyof ImportCsvResponses];
+
+export type ScheduleImportBatchRecrawlData = {
+    body?: never;
+    path: {
+        /**
+         * Completed CSV import batch identifier
+         */
+        import_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/imports/{import_id}/recrawl';
+};
+
+export type ScheduleImportBatchRecrawlErrors = {
+    401: ErrorEnvelope;
+    403: ErrorEnvelope;
+    404: ErrorEnvelope;
+    422: ErrorEnvelope;
+    429: ErrorEnvelope;
+    503: ErrorEnvelope;
+};
+
+export type ScheduleImportBatchRecrawlError = ScheduleImportBatchRecrawlErrors[keyof ScheduleImportBatchRecrawlErrors];
+
+export type ScheduleImportBatchRecrawlResponses = {
+    200: ImportBatchRecrawlResponse;
+};
+
+export type ScheduleImportBatchRecrawlResponse = ScheduleImportBatchRecrawlResponses[keyof ScheduleImportBatchRecrawlResponses];
 
 export type OperationsOverviewData = {
     body?: never;

@@ -1,10 +1,10 @@
 use async_trait::async_trait;
 use sqlx::{PgPool, Postgres, Row, Transaction, postgres::types::PgInterval};
 use techatlas_models::{
-    AdminImportOperations, AdminOperationError, CanonicalDomain, CrawlPolicy, CsvImportCommand,
-    CsvImportRepository, CsvImportRepositoryError, CsvImportResult, CsvImportRowError,
-    CsvImportRowInput, CsvImportRowResult, CsvImportRowStatus, DomainCreationDefaults,
-    parse_row_domain,
+    AdminImportBatch, AdminImportOperations, AdminOperationError, CanonicalDomain, CrawlPolicy,
+    CsvImportCommand, CsvImportRepository, CsvImportRepositoryError, CsvImportResult,
+    CsvImportRowError, CsvImportRowInput, CsvImportRowResult, CsvImportRowStatus,
+    DomainCreationDefaults, parse_row_domain,
 };
 use uuid::Uuid;
 
@@ -31,6 +31,50 @@ impl AdminImportOperations for PostgresCsvImportRepository {
         <Self as CsvImportRepository>::import_csv(self, command, DomainCreationDefaults::default())
             .await
             .map_err(|_| AdminOperationError::Unavailable)
+    }
+
+    async fn completed_import_batches(
+        &self,
+        limit: usize,
+    ) -> Result<Vec<AdminImportBatch>, AdminOperationError> {
+        let limit = i64::try_from(limit).map_err(|_| AdminOperationError::Validation)?;
+        let rows = sqlx::query(
+            "SELECT imports.id, sources.name AS source_name, imports.completed_at, \
+                    COUNT(DISTINCT import_rows.domain_id) AS domain_count \
+             FROM imports \
+             JOIN domain_sources AS sources ON sources.id = imports.source_id \
+             LEFT JOIN import_rows ON import_rows.import_id = imports.id \
+                 AND import_rows.domain_id IS NOT NULL \
+             WHERE imports.status = 'completed' \
+             GROUP BY imports.id, sources.name, imports.completed_at \
+             ORDER BY imports.completed_at DESC, imports.id DESC \
+             LIMIT $1",
+        )
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|_| AdminOperationError::Unavailable)?;
+        rows.into_iter()
+            .map(|row| {
+                Ok(AdminImportBatch {
+                    import_id: row
+                        .try_get::<Uuid, _>("id")
+                        .map_err(|_| AdminOperationError::Unavailable)?
+                        .to_string(),
+                    source_name: row
+                        .try_get("source_name")
+                        .map_err(|_| AdminOperationError::Unavailable)?,
+                    completed_at: row
+                        .try_get("completed_at")
+                        .map_err(|_| AdminOperationError::Unavailable)?,
+                    domain_count: u64::try_from(
+                        row.try_get::<i64, _>("domain_count")
+                            .map_err(|_| AdminOperationError::Unavailable)?,
+                    )
+                    .map_err(|_| AdminOperationError::Unavailable)?,
+                })
+            })
+            .collect()
     }
 }
 
