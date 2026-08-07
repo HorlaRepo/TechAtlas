@@ -206,6 +206,21 @@ cargo run -p techatlas-cli -- migrate-database
 
 The API, scheduler, and worker expose /healthz and /readyz on ports 3000, 3001, and 3002 by default. The [configuration matrix](./docs/configuration.md) lists every required variable, timeout, and safe default.
 
+## CSV import format
+
+Administrator and CLI imports accept a CSV with exactly one column named `domain`. Each row must
+contain one canonical public domain only—no URL scheme, path, port, or extra metadata columns.
+
+~~~csv
+domain
+example.com
+www.example.org
+~~~
+
+For example, a source file with `pages`, `urls`, or ranking columns must be reduced to its
+`domain` column before import. The import records its explicit source name and initiating operator;
+see the [CLI import command](./docs/cli/README.md#import-csv) for the full invocation.
+
 ## Public routes and capabilities
 
 | Route | Capability |
