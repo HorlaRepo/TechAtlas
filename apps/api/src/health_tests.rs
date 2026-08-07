@@ -93,6 +93,7 @@ impl DomainSearch for StaticPublicSearch {
                 technology_slugs: vec!["react".to_owned()],
                 category_slugs: vec!["frontend-framework".to_owned()],
                 country_code: Some("NG".to_owned()),
+                max_confidence: 95,
                 last_crawled_at: Some(OffsetDateTime::UNIX_EPOCH),
                 updated_at: OffsetDateTime::UNIX_EPOCH,
             }],
@@ -648,6 +649,7 @@ async fn public_search_returns_a_typed_page_without_admin_authentication() {
     let body = String::from_utf8(body.to_vec()).expect("response should be UTF-8");
     assert!(body.contains(r#""results":[{"canonical_domain":"example.test""#));
     assert!(body.contains(r#""technology_slugs":["react"]"#));
+    assert!(body.contains(r#""max_confidence":95"#));
     assert!(body.contains(r#""estimated_total_hits":1"#));
     assert!(body.contains(r#""facets":{"technology":{"react":1},"category":{"frontend-framework":1},"country":{"NG":1}}"#));
 }

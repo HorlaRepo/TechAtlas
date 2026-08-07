@@ -2709,6 +2709,7 @@ components:
       - canonical_domain
       - technology_slugs
       - category_slugs
+      - max_confidence
       - updated_at
       properties:
         canonical_domain:
@@ -2725,6 +2726,10 @@ components:
           type:
           - string
           - 'null'
+        max_confidence:
+          type: integer
+          format: int32
+          minimum: 0
         technology_slugs:
           type: array
           items:

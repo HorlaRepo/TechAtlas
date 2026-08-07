@@ -252,6 +252,7 @@ fn search_page_response(
                 technology_slugs: hit.technology_slugs,
                 category_slugs: hit.category_slugs,
                 country_code: hit.country_code,
+                max_confidence: hit.max_confidence,
                 last_crawled_at: hit.last_crawled_at.map(format_timestamp).transpose()?,
                 updated_at: format_timestamp(hit.updated_at)?,
             })
