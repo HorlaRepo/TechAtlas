@@ -1,5 +1,7 @@
 ARG RUST_VERSION=1.97.1
-FROM rust:${RUST_VERSION}-slim AS builder
+# Keep the builder on Bookworm so its dynamically linked binaries are compatible
+# with the Debian Bookworm runtime image below.
+FROM rust:${RUST_VERSION}-bookworm AS builder
 
 WORKDIR /workspace
 
