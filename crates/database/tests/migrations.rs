@@ -260,7 +260,31 @@ async fn migrations_apply_to_a_blank_postgres_and_enforce_corpus_invariants()
     let seeded_technology_count: i64 = query_scalar("SELECT COUNT(*) FROM technologies")
         .fetch_one(&pool)
         .await?;
-    assert_eq!(seeded_technology_count, 5);
+    assert_eq!(seeded_technology_count, 8);
+    let active_rule_count: i64 =
+        query_scalar("SELECT COUNT(*) FROM detection_rules WHERE active_version_id IS NOT NULL")
+            .fetch_one(&pool)
+            .await?;
+    assert_eq!(active_rule_count, 8);
+    let wordpress_definition: serde_json::Value = query_scalar(
+        "SELECT versions.definition \
+         FROM detection_rules AS rules \
+         JOIN detection_rule_versions AS versions ON versions.id = rules.active_version_id \
+         WHERE rules.slug = 'wordpress-v1'",
+    )
+    .fetch_one(&pool)
+    .await?;
+    assert_eq!(wordpress_definition["signals"][0]["source"], "header");
+    assert_eq!(wordpress_definition["signals"][0]["key"], "x-powered-by");
+    let nextjs_active_version: i16 = query_scalar(
+        "SELECT versions.version \
+         FROM detection_rules AS rules \
+         JOIN detection_rule_versions AS versions ON versions.id = rules.active_version_id \
+         WHERE rules.slug = 'nextjs-v1'",
+    )
+    .fetch_one(&pool)
+    .await?;
+    assert_eq!(nextjs_active_version, 2);
     let rule_version_id: String = query_scalar(
         "SELECT detection_rule_versions.id::TEXT \
          FROM detection_rule_versions \
